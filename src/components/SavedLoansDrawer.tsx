@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
 import { formatCurrency } from '../utils/currencies';
-import { BookmarkCheck, Trash2, ArrowUpRight, X, FolderOpen } from 'lucide-react';
+import {
+  BookmarkCheck,
+  Trash2,
+  ArrowUpRight,
+  X,
+  FolderOpen,
+  Upload,
+  Download,
+  Eraser,
+} from 'lucide-react';
 
 interface SavedLoansDrawerProps {
   isOpen: boolean;
@@ -9,6 +18,9 @@ interface SavedLoansDrawerProps {
   savedLoans: SavedLoanRecord[];
   onSelectLoan: (loan: LoanInput) => void;
   onDeleteLoan: (id: string) => void;
+  onClearAllLoans: () => void;
+  onExportLoans: () => void;
+  onImportLoans: (file: File) => void;
   activeLoanId: string;
 }
 
@@ -18,8 +30,13 @@ export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
   savedLoans,
   onSelectLoan,
   onDeleteLoan,
+  onClearAllLoans,
+  onExportLoans,
+  onImportLoans,
   activeLoanId,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!isOpen) return null;
 
   return (
@@ -120,14 +137,51 @@ export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-          <button
-            onClick={onClose}
-            className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            Close
-          </button>
+        {/* Footer: Local Backup Management */}
+        <div className="border-t border-slate-100 dark:border-slate-800 p-4 space-y-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                onImportLoans(file);
+              }
+              e.target.value = '';
+            }}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={onExportLoans}
+              className="flex items-center gap-1.5 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+              title="Download all saved loans as a JSON backup file"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export Backup
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+              title="Import loans from a LoanMatrix backup file"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Import Backup
+            </button>
+            <button
+              onClick={onClearAllLoans}
+              className="flex items-center gap-1.5 rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/40 transition-colors"
+              title="Remove all saved loan calculations"
+            >
+              <Eraser className="h-3.5 w-3.5" />
+              Clear All
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+            All data lives only in this browser's local storage. Backups are plain JSON files you
+            control.
+          </p>
         </div>
       </div>
     </div>

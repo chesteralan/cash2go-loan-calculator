@@ -3,7 +3,6 @@ import { CASH2GO_PRESET, STANDARD_MORTGAGE_PRESET } from './loanCalculations';
 
 const SAVED_LOANS_KEY = 'loanmatrix_saved_loans_v1';
 const CURRENT_LOAN_KEY = 'loanmatrix_active_loan_v1';
-const SYNC_CLOUD_ID_KEY = 'loanmatrix_sync_id_v1';
 const DARK_MODE_KEY = 'loanmatrix_theme_dark';
 
 export function getSavedLoans(): SavedLoanRecord[] {
@@ -28,7 +27,11 @@ export function getSavedLoans(): SavedLoanRecord[] {
       localStorage.setItem(SAVED_LOANS_KEY, JSON.stringify(initial));
       return initial;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed;
   } catch {
     return [];
   }
@@ -37,11 +40,12 @@ export function getSavedLoans(): SavedLoanRecord[] {
 export function saveLoanToStorage(input: LoanInput): SavedLoanRecord[] {
   const current = getSavedLoans();
   const existingIdx = current.findIndex((item) => item.id === input.id);
+  const id = input.id || `loan-${Date.now()}`;
   const record: SavedLoanRecord = {
-    id: input.id || `loan-${Date.now()}`,
+    id,
     title: input.title || 'Untitled Loan',
     timestamp: Date.now(),
-    input: { ...input, id: input.id || `loan-${Date.now()}` },
+    input: { ...input, id },
   };
 
   let updated: SavedLoanRecord[];
@@ -61,6 +65,11 @@ export function deleteSavedLoan(id: string): SavedLoanRecord[] {
   const updated = current.filter((item) => item.id !== id);
   localStorage.setItem(SAVED_LOANS_KEY, JSON.stringify(updated));
   return updated;
+}
+
+export function clearAllLoans(): SavedLoanRecord[] {
+  localStorage.removeItem(SAVED_LOANS_KEY);
+  return getSavedLoans();
 }
 
 export function getActiveLoanFromStorage(): LoanInput {
@@ -83,63 +92,61 @@ export function setActiveLoanToStorage(input: LoanInput): void {
   }
 }
 
-export function getSyncID(): string {
-  let id = localStorage.getItem(SYNC_CLOUD_ID_KEY);
-  if (!id) {
-    id =
-      'LM-' +
-      Math.random().toString(36).substring(2, 8).toUpperCase() +
-      '-' +
-      Date.now().toString(36).toUpperCase();
-    localStorage.setItem(SYNC_CLOUD_ID_KEY, id);
-  }
-  return id;
-}
-
-// fallow-ignore-next-line unused-type
-export interface SyncPayload {
+export interface ExportPayload {
+  app: 'loanmatrix';
   version: 1;
-  syncId: string;
-  timestamp: number;
+  exportedAt: number;
   loans: SavedLoanRecord[];
 }
 
-export function generateSyncBundle(): string {
-  const loans = getSavedLoans();
-  const payload: SyncPayload = {
+export function buildExportData(): ExportPayload {
+  return {
+    app: 'loanmatrix',
     version: 1,
-    syncId: getSyncID(),
-    timestamp: Date.now(),
-    loans,
+    exportedAt: Date.now(),
+    loans: getSavedLoans(),
   };
-  return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
 }
 
-export function restoreSyncBundle(base64Bundle: string): {
+export function exportLoansJson(): void {
+  const payload = buildExportData();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `loanmatrix-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function importLoansJson(jsonText: string): {
   success: boolean;
   count: number;
   error?: string;
 } {
   try {
-    const jsonStr = decodeURIComponent(escape(atob(base64Bundle.trim())));
-    const payload = JSON.parse(jsonStr) as SyncPayload;
+    const payload = JSON.parse(jsonText) as ExportPayload;
     if (!payload || !Array.isArray(payload.loans)) {
-      return { success: false, count: 0, error: 'Invalid sync bundle structure' };
+      return { success: false, count: 0, error: 'Invalid backup file structure' };
     }
+
+    const valid = payload.loans.filter((l) => l && typeof l === 'object' && l.id && l.input);
 
     const current = getSavedLoans();
     const map = new Map<string, SavedLoanRecord>();
     current.forEach((l) => map.set(l.id, l));
-    payload.loans.forEach((l) => map.set(l.id, l));
+    valid.forEach((l) => map.set(l.id, l));
 
     const merged = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
     localStorage.setItem(SAVED_LOANS_KEY, JSON.stringify(merged));
-    return { success: true, count: payload.loans.length };
+    return { success: true, count: valid.length };
   } catch (err: unknown) {
     return {
       success: false,
       count: 0,
-      error: err instanceof Error ? err.message : 'Failed to decode sync bundle',
+      error: err instanceof Error ? err.message : 'Failed to read backup file',
     };
   }
 }

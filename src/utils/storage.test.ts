@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearAllLoans,
   deleteSavedLoan,
-  generateSyncBundle,
+  exportLoansJson,
+  buildExportData,
   getActiveLoanFromStorage,
   getSavedLoans,
   getStoredDarkMode,
-  getSyncID,
-  restoreSyncBundle,
+  importLoansJson,
   saveLoanToStorage,
   setActiveLoanToStorage,
   setStoredDarkMode,
-} from './storageAndSync';
+} from './storage';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
 import { CASH2GO_PRESET } from './loanCalculations';
 
@@ -72,6 +73,15 @@ describe('saved loans CRUD', () => {
     expect(after.find((l) => l.id === 'sample-1')).toBeUndefined();
     expect(getSavedLoans().find((l) => l.id === 'sample-1')).toBeUndefined();
   });
+
+  it('clears all loans and re-seeds presets', () => {
+    saveLoanToStorage(sampleLoan);
+    const after = clearAllLoans();
+    expect(after.map((l) => l.id)).toEqual(
+      expect.arrayContaining(['cash2go-preset', 'standard-mortgage-preset'])
+    );
+    expect(after.find((l) => l.id === 'sample-1')).toBeUndefined();
+  });
 });
 
 describe('active loan', () => {
@@ -90,46 +100,28 @@ describe('active loan', () => {
   });
 });
 
-describe('sync id', () => {
-  it('generates and persists a stable id', () => {
-    const first = getSyncID();
-    expect(first).toMatch(/^LM-[A-Z0-9]+-[A-Z0-9]+$/);
-    expect(getSyncID()).toBe(first);
-  });
-});
-
-describe('sync bundle', () => {
-  it('round-trips through base64', () => {
+describe('JSON export/import', () => {
+  it('builds an export payload with all saved loans', () => {
     saveLoanToStorage(sampleLoan);
-    const bundle = generateSyncBundle();
-    expect(typeof bundle).toBe('string');
-    localStorage.clear();
-    const result = restoreSyncBundle(bundle);
-    expect(result.success).toBe(true);
-    // Bundle includes the 2 seeded presets + sample loan
-    expect(result.count).toBe(3);
-    const restored = getSavedLoans().find((l) => l.id === 'sample-1');
-    expect(restored?.title).toBe('Sample Loan');
+    const data = buildExportData();
+    expect(data.app).toBe('loanmatrix');
+    expect(data.version).toBe(1);
+    expect(typeof data.exportedAt).toBe('number');
+    expect(data.loans.map((l) => l.id)).toContain('sample-1');
   });
 
-  it('merges with existing loans on restore', () => {
+  it('merges loans from a backup file', () => {
+    saveLoanToStorage(sampleLoan);
     const other: SavedLoanRecord = {
       id: 'other-1',
       title: 'Other',
       timestamp: Date.now(),
       input: sampleLoan,
     };
-    saveLoanToStorage(sampleLoan);
-    const bundle = btoa(
-      unescape(
-        encodeURIComponent(
-          JSON.stringify({ version: 1, syncId: 'X', timestamp: 1, loans: [other] })
-        )
-      )
+    const result = importLoansJson(
+      JSON.stringify({ app: 'loanmatrix', version: 1, exportedAt: 1, loans: [other] })
     );
-    const result = restoreSyncBundle(bundle);
     expect(result.success).toBe(true);
-    // 2 seeded presets + sample + other from bundle
     expect(
       getSavedLoans()
         .map((l) => l.id)
@@ -137,19 +129,25 @@ describe('sync bundle', () => {
     ).toEqual(['cash2go-preset', 'other-1', 'sample-1', 'standard-mortgage-preset']);
   });
 
-  it('rejects malformed bundles', () => {
-    expect(restoreSyncBundle('not-base64!')).toEqual({
+  it('rejects malformed import payloads', () => {
+    expect(importLoansJson('not json')).toEqual({
       success: false,
       count: 0,
       error: expect.any(String),
     });
+    expect(importLoansJson(JSON.stringify({ nope: true }))).toEqual({
+      success: false,
+      count: 0,
+      error: 'Invalid backup file structure',
+    });
   });
 
-  it('rejects valid base64 with wrong structure', () => {
-    const bundle = btoa(unescape(encodeURIComponent(JSON.stringify({ nope: true }))));
-    const result = restoreSyncBundle(bundle);
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Invalid sync bundle structure');
+  it('skips invalid loan entries on import', () => {
+    const result = importLoansJson(
+      JSON.stringify({ app: 'loanmatrix', version: 1, exportedAt: 1, loans: [{ bad: true }, null] })
+    );
+    expect(result.success).toBe(true);
+    expect(result.count).toBe(0);
   });
 });
 
@@ -161,5 +159,36 @@ describe('dark mode', () => {
     setStoredDarkMode(false);
     expect(getStoredDarkMode()).toBe(false);
     expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+});
+
+describe('export download', () => {
+  it('triggers a JSON file download', () => {
+    saveLoanToStorage(sampleLoan);
+    const clickMock = vi.fn();
+    const anchorStub = {
+      href: '',
+      download: '',
+      click: clickMock,
+      remove: vi.fn(),
+    } as unknown as HTMLAnchorElement;
+    const appendSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => anchorStub);
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockImplementation(() => anchorStub);
+    const createObjectURL = vi.fn(() => 'blob:mock');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
+
+    exportLoansJson();
+
+    expect(clickMock).toHaveBeenCalledTimes(1);
+    expect(createElementSpy).toHaveBeenCalledTimes(1);
+    expect(anchorStub.download).toContain('loanmatrix-backup-');
+    expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+
+    appendSpy.mockRestore();
+    createElementSpy.mockRestore();
   });
 });

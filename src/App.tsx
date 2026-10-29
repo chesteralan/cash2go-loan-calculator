@@ -2,14 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LoanInput, SavedLoanRecord } from './types/loan';
 import { calculateLoan, CASH2GO_PRESET } from './utils/loanCalculations';
 import {
+  clearAllLoans,
+  exportLoansJson,
   getActiveLoanFromStorage,
   getSavedLoans,
   getStoredDarkMode,
+  importLoansJson,
   saveLoanToStorage,
   deleteSavedLoan,
   setActiveLoanToStorage,
   setStoredDarkMode,
-} from './utils/storageAndSync';
+} from './utils/storage';
 import { Header } from './components/Header';
 import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
 import { LoanInputForm } from './components/LoanInputForm';
@@ -18,7 +21,6 @@ import { AmortizationChart } from './components/AmortizationChart';
 import { AmortizationBreakdownDonut } from './components/AmortizationBreakdownDonut';
 import { AmortizationMatrix } from './components/AmortizationMatrix';
 import { CurrencyConverterModal } from './components/CurrencyConverterModal';
-import { CloudSyncModal } from './components/CloudSyncModal';
 import { LoanComparisonModal } from './components/LoanComparisonModal';
 import { LoanComparisonView } from './components/LoanComparisonView';
 import { SavedLoansDrawer } from './components/SavedLoansDrawer';
@@ -33,7 +35,6 @@ export default function App() {
 
   // Modals state
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
-  const [cloudSyncModalOpen, setCloudSyncModalOpen] = useState(false);
   const [comparisonModalOpen, setComparisonModalOpen] = useState(false);
   const [savedLoansDrawerOpen, setSavedLoansDrawerOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -73,6 +74,32 @@ export default function App() {
     setSavedLoans(updated);
   };
 
+  const handleClearAllLoans = () => {
+    const updated = clearAllLoans();
+    setSavedLoans(updated);
+    showNotification('All saved loan calculations removed.');
+  };
+
+  const handleExportLoans = () => {
+    exportLoansJson();
+    showNotification('Backup file downloaded.');
+  };
+
+  const handleImportLoans = (file: File) => {
+    file
+      .text()
+      .then((text) => {
+        const res = importLoansJson(text);
+        if (res.success) {
+          setSavedLoans(getSavedLoans());
+          showNotification(`Imported ${res.count} calculation(s).`);
+        } else {
+          showNotification(res.error || 'Import failed.');
+        }
+      })
+      .catch(() => showNotification('Could not read the selected file.'));
+  };
+
   const handleSelectSavedLoan = (loan: LoanInput) => {
     setActiveInput(loan);
     showNotification(`Loaded "${loan.title}".`);
@@ -109,7 +136,6 @@ export default function App() {
         setDarkMode={setDarkMode}
         selectedCurrency={activeInput.currencyCode}
         onOpenCurrencyConverter={() => setCurrencyModalOpen(true)}
-        onOpenCloudSync={() => setCloudSyncModalOpen(true)}
         onOpenSavedLoans={() => setSavedLoansDrawerOpen(true)}
         savedLoansCount={savedLoans.length}
       />
@@ -264,8 +290,7 @@ export default function App() {
               </span>
               <p className="mt-1">
                 All financial calculations are processed client-side. No loan data, credit amounts,
-                or personal numbers are ever transmitted to any third-party server without your
-                explicit sync export.
+                or personal numbers are ever transmitted to a third-party server.
               </p>
             </div>
           </div>
@@ -301,15 +326,6 @@ export default function App() {
         }}
       />
 
-      <CloudSyncModal
-        isOpen={cloudSyncModalOpen}
-        onClose={() => setCloudSyncModalOpen(false)}
-        onSyncCompleted={() => {
-          setSavedLoans(getSavedLoans());
-          showNotification('Cloud synchronization completed.');
-        }}
-      />
-
       <LoanComparisonModal
         isOpen={comparisonModalOpen}
         onClose={() => setComparisonModalOpen(false)}
@@ -332,6 +348,9 @@ export default function App() {
         savedLoans={savedLoans}
         onSelectLoan={handleSelectSavedLoan}
         onDeleteLoan={handleDeleteSavedLoan}
+        onClearAllLoans={handleClearAllLoans}
+        onExportLoans={handleExportLoans}
+        onImportLoans={handleImportLoans}
         activeLoanId={activeInput.id}
       />
 
