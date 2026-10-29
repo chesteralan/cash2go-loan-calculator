@@ -13,6 +13,7 @@
     "format:check": "prettier --check .",
     "test": "NODE_ENV=test vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
     "audit": "npm audit",
     "knip": "knip",
     "fallow": "fallow",
@@ -41,6 +42,7 @@
     "vite": "^8.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
