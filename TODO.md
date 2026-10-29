@@ -28,7 +28,9 @@
 - [x] **PWA manifest consolidation** — legacy `public/manifest.json` removed; the generated `manifest.webmanifest` (vite-plugin-pwa) is the single source.
 - [x] **Favicon** — dropped the nonexistent `favicon.ico` from `includeAssets`; `icon.svg` is the single app icon.
 
-## Next iteration ideas (new backlog)
+## Done next iteration (v0.1.2, `feat/e2e-and-inapp-dialogs`)
 
-- [ ] **E2E smoke test** — Playwright pass over save/export/import/compare flows.
-- [ ] **Window-confirm replacement for overwrite dialog** — replace `window.confirm` in the save-as-copy flow with an in-app dialog for consistency.
+- [x] **In-app dialog for overwrite** — replaced `window.confirm` in the save-as-copy flow with a shared `ui/ConfirmDialog` component (Escape to close, focused heading, explicit "Save as copy" / "Overwrite existing" actions).
+- [x] **E2E smoke test** — Playwright (`bun run e2e`, dedicated dev-server port 4517, headless chromium): drives calculate → save → duplicate-title dialog → save-as-copy → drawer → export backup download → import with preview → apply → compare view, end to end.
+
+## Next iteration ideas (new backlog)

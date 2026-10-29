@@ -17,6 +17,7 @@ import {
   type ImportPreview,
 } from './utils/storage';
 import { Header } from './components/Header';
+import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
 import { LoanInputForm } from './components/LoanInputForm';
 import { LoanSummaryCards } from './components/LoanSummaryCards';
@@ -98,28 +99,26 @@ export default function App() {
     notificationTimerRef.current = setTimeout(() => setNotification(null), undo ? 6000 : 3000);
   };
 
+  type SaveCollision = { existingId: string; title: string };
+  const [saveCollision, setSaveCollision] = useState<SaveCollision | null>(null);
+
   const handleSaveCurrentLoan = () => {
-    let inputToSave = activeInput;
     // Title collision with a different id: offer overwrite vs save-as-copy.
     const collision = savedLoans.find(
       (l) => l.id !== activeInput.id && l.title === activeInput.title
     );
     if (collision) {
-      const saveAsCopy = window.confirm(
-        `A calculation named "${collision.title}" already exists.\n\nOK = Save as copy · Cancel = Overwrite the existing calculation.`
-      );
-      inputToSave = saveAsCopy
-        ? {
-            ...activeInput,
-            id: '',
-            title: `${activeInput.title || 'Untitled Loan'} (copy)`,
-          }
-        : { ...activeInput, id: collision.id };
+      setSaveCollision({ existingId: collision.id, title: collision.title });
+      return;
     }
+    commitSave(activeInput);
+  };
 
-    const updated = saveLoanToStorage(inputToSave);
+  const commitSave = (input: LoanInput) => {
+    const updated = saveLoanToStorage(input);
     setSavedLoans(updated);
-    showNotification(`Saved "${inputToSave.title || 'Loan'}" to your calculations.`);
+    setSaveCollision(null);
+    showNotification(`Saved "${input.title || 'Loan'}" to your calculations.`);
   };
 
   const handleDeleteSavedLoan = (id: string) => {
@@ -446,6 +445,37 @@ export default function App() {
         onCancelImport={() => setImportPreview(null)}
         onApplyImport={handleApplyImport}
         activeLoanId={activeInput.id}
+      />
+
+      {/* Overwrite vs Save-as-copy dialog */}
+      <ConfirmDialog
+        isOpen={saveCollision !== null}
+        onClose={() => setSaveCollision(null)}
+        title={`"${saveCollision?.title}" already exists`}
+        description="Do you want to keep both, or replace the existing calculation?"
+        actions={[
+          {
+            label: 'Save as copy',
+            primary: true,
+            onClick: () => {
+              commitSave({
+                ...activeInput,
+                id: '',
+                title: `${activeInput.title || 'Untitled Loan'} (copy)`,
+              });
+            },
+          },
+          {
+            label: 'Overwrite existing',
+            onClick: () => {
+              if (saveCollision) {
+                commitSave({ ...activeInput, id: saveCollision.existingId });
+              } else {
+                setSaveCollision(null);
+              }
+            },
+          },
+        ]}
       />
 
       {/* Offline Status Indicator */}
