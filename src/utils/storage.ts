@@ -72,6 +72,12 @@ export function clearAllLoans(): SavedLoanRecord[] {
   return getSavedLoans();
 }
 
+/** Restore an exact list — used by the delete/clear undo actions. */
+export function overwriteSavedLoans(records: SavedLoanRecord[]): SavedLoanRecord[] {
+  localStorage.setItem(SAVED_LOANS_KEY, JSON.stringify(records));
+  return records;
+}
+
 export function getActiveLoanFromStorage(): LoanInput {
   try {
     const raw = localStorage.getItem(CURRENT_LOAN_KEY);
@@ -121,34 +127,91 @@ export function exportLoansJson(): void {
   URL.revokeObjectURL(url);
 }
 
-export function importLoansJson(jsonText: string): {
+export interface ImportPreview {
+  fileLoans: SavedLoanRecord[];
+  newCount: number;
+  updatedCount: number;
+  unchangedCount: number;
+  invalidCount: number;
+}
+
+function parseBackup(jsonText: string): { valid: SavedLoanRecord[]; invalidCount: number } | null {
+  try {
+    const payload = JSON.parse(jsonText) as ExportPayload;
+    if (!payload || !Array.isArray(payload.loans)) {
+      return null;
+    }
+    const valid = payload.loans.filter(
+      (l): l is SavedLoanRecord =>
+        !!l && typeof l === 'object' && 'id' in l && !!l.id && 'input' in l
+    );
+    return { valid, invalidCount: payload.loans.length - valid.length };
+  } catch {
+    return null;
+  }
+}
+
+export function buildImportPreview(jsonText: string): ImportPreview {
+  const parsed = parseBackup(jsonText);
+  if (!parsed)
+    return { fileLoans: [], newCount: 0, updatedCount: 0, unchangedCount: 0, invalidCount: 0 };
+  const current = getSavedLoans();
+  let newCount = 0;
+  let updatedCount = 0;
+  let unchangedCount = 0;
+  parsed.valid.forEach((l) => {
+    const existing = current.find((c) => c.id === l.id);
+    if (!existing) newCount++;
+    else if (JSON.stringify(existing) !== JSON.stringify(l)) updatedCount++;
+    else unchangedCount++;
+  });
+  return {
+    fileLoans: parsed.valid,
+    newCount,
+    updatedCount,
+    unchangedCount,
+    invalidCount: parsed.invalidCount,
+  };
+}
+
+export function applyImport(preview: ImportPreview): {
   success: boolean;
   count: number;
   error?: string;
 } {
-  try {
-    const payload = JSON.parse(jsonText) as ExportPayload;
-    if (!payload || !Array.isArray(payload.loans)) {
-      return { success: false, count: 0, error: 'Invalid backup file structure' };
-    }
-
-    const valid = payload.loans.filter((l) => l && typeof l === 'object' && l.id && l.input);
-
-    const current = getSavedLoans();
-    const map = new Map<string, SavedLoanRecord>();
-    current.forEach((l) => map.set(l.id, l));
-    valid.forEach((l) => map.set(l.id, l));
-
-    const merged = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
-    localStorage.setItem(SAVED_LOANS_KEY, JSON.stringify(merged));
-    return { success: true, count: valid.length };
-  } catch (err: unknown) {
-    return {
-      success: false,
-      count: 0,
-      error: err instanceof Error ? err.message : 'Failed to read backup file',
-    };
+  if (preview.fileLoans.length === 0) {
+    return { success: false, count: 0, error: 'Invalid backup file structure' };
   }
+
+  const current = getSavedLoans();
+  const map = new Map<string, SavedLoanRecord>();
+  current.forEach((l) => map.set(l.id, l));
+  preview.fileLoans.forEach((l) => map.set(l.id, l));
+
+  const merged = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
+  localStorage.setItem(SAVED_LOANS_KEY, JSON.stringify(merged));
+  return { success: true, count: preview.fileLoans.length };
+}
+
+export interface StorageUsage {
+  savedLoansBytes: number;
+  activeLoanBytes: number;
+  totalBytes: number;
+  quotaBytes: number;
+}
+
+const ASSUMED_QUOTA_BYTES = 5 * 1024 * 1024;
+
+export function getStorageUsage(): StorageUsage {
+  const byteLength = (value: string | null) => (value === null ? 0 : new Blob([value]).size);
+  const savedLoansBytes = byteLength(localStorage.getItem(SAVED_LOANS_KEY));
+  const activeLoanBytes = byteLength(localStorage.getItem(CURRENT_LOAN_KEY));
+  return {
+    savedLoansBytes,
+    activeLoanBytes,
+    totalBytes: savedLoansBytes + activeLoanBytes,
+    quotaBytes: ASSUMED_QUOTA_BYTES,
+  };
 }
 
 export function getStoredDarkMode(): boolean {

@@ -20,6 +20,8 @@ const setup = () => {
     onClearAllLoans: vi.fn(),
     onExportLoans: vi.fn(),
     onImportLoans: vi.fn(),
+    onCancelImport: vi.fn(),
+    onApplyImport: vi.fn(),
   };
   render(
     <SavedLoansDrawer
@@ -30,7 +32,10 @@ const setup = () => {
       onDeleteLoan={handlers.onDeleteLoan}
       onClearAllLoans={handlers.onClearAllLoans}
       onExportLoans={handlers.onExportLoans}
-      onImportLoans={handlers.onImportLoans}
+      onImportFile={handlers.onImportLoans}
+      importPreview={null}
+      onCancelImport={handlers.onCancelImport}
+      onApplyImport={handlers.onApplyImport}
       activeLoanId="sample-1"
     />
   );

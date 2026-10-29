@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  applyImport,
+  buildImportPreview,
   clearAllLoans,
   deleteSavedLoan,
   exportLoansJson,
@@ -7,7 +9,8 @@ import {
   getActiveLoanFromStorage,
   getSavedLoans,
   getStoredDarkMode,
-  importLoansJson,
+  getStorageUsage,
+  overwriteSavedLoans,
   saveLoanToStorage,
   setActiveLoanToStorage,
   setStoredDarkMode,
@@ -110,7 +113,7 @@ describe('JSON export/import', () => {
     expect(data.loans.map((l) => l.id)).toContain('sample-1');
   });
 
-  it('merges loans from a backup file', () => {
+  it('previews and applies backup imports', () => {
     saveLoanToStorage(sampleLoan);
     const other: SavedLoanRecord = {
       id: 'other-1',
@@ -118,9 +121,12 @@ describe('JSON export/import', () => {
       timestamp: Date.now(),
       input: sampleLoan,
     };
-    const result = importLoansJson(
+    const preview = buildImportPreview(
       JSON.stringify({ app: 'loanmatrix', version: 1, exportedAt: 1, loans: [other] })
     );
+    expect(preview.newCount).toBe(1);
+    expect(preview.updatedCount).toBe(0);
+    const result = applyImport(preview);
     expect(result.success).toBe(true);
     expect(
       getSavedLoans()
@@ -129,25 +135,67 @@ describe('JSON export/import', () => {
     ).toEqual(['cash2go-preset', 'other-1', 'sample-1', 'standard-mortgage-preset']);
   });
 
-  it('rejects malformed import payloads', () => {
-    expect(importLoansJson('not json')).toEqual({
-      success: false,
-      count: 0,
-      error: expect.any(String),
+  it('previews show updated vs unchanged by id comparison', () => {
+    saveLoanToStorage(sampleLoan);
+    const changed: SavedLoanRecord = {
+      id: 'sample-1',
+      title: 'Sample Loan (edited)',
+      timestamp: Date.now(),
+      input: sampleLoan,
+    };
+    const preview = buildImportPreview(
+      JSON.stringify({ app: 'loanmatrix', version: 1, exportedAt: 1, loans: [changed] })
+    );
+    expect(preview.updatedCount).toBe(1);
+    expect(preview.newCount).toBe(0);
+  });
+
+  it('returns empty preview for malformed payloads', () => {
+    const preview = buildImportPreview('not json');
+    expect(preview).toEqual({
+      fileLoans: [],
+      newCount: 0,
+      updatedCount: 0,
+      unchangedCount: 0,
+      invalidCount: 0,
     });
-    expect(importLoansJson(JSON.stringify({ nope: true }))).toEqual({
-      success: false,
-      count: 0,
-      error: 'Invalid backup file structure',
+    expect(buildImportPreview(JSON.stringify({ nope: true }))).toEqual({
+      fileLoans: [],
+      newCount: 0,
+      updatedCount: 0,
+      unchangedCount: 0,
+      invalidCount: 0,
     });
   });
 
-  it('skips invalid loan entries on import', () => {
-    const result = importLoansJson(
+  it('counts invalid loan entries in the preview', () => {
+    const preview = buildImportPreview(
       JSON.stringify({ app: 'loanmatrix', version: 1, exportedAt: 1, loans: [{ bad: true }, null] })
     );
-    expect(result.success).toBe(true);
-    expect(result.count).toBe(0);
+    expect(preview.invalidCount).toBe(2);
+    expect(preview.fileLoans.length).toBe(0);
+    expect(applyImport(preview).success).toBe(false);
+  });
+});
+
+describe('storage usage and undo helpers', () => {
+  it('reports approximate byte usage', () => {
+    saveLoanToStorage(sampleLoan);
+    const usage = getStorageUsage();
+    expect(usage.savedLoansBytes).toBeGreaterThan(0);
+    expect(usage.totalBytes).toBe(usage.savedLoansBytes + usage.activeLoanBytes);
+    expect(usage.quotaBytes).toBeGreaterThan(usage.totalBytes);
+  });
+
+  it('overwrites the saved list exactly (undo restore)', () => {
+    const restored: SavedLoanRecord[] = [
+      { id: 'only-1', title: 'Only', timestamp: 1, input: sampleLoan },
+    ];
+    const before = getSavedLoans();
+    const result = overwriteSavedLoans(restored);
+    expect(result.map((l) => l.id)).toEqual(['only-1']);
+    overwriteSavedLoans(before);
+    expect(getSavedLoans().map((l) => l.id)).toEqual(before.map((l) => l.id));
   });
 });
 

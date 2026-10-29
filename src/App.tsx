@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { LoanInput, SavedLoanRecord } from './types/loan';
 import { calculateLoan, CASH2GO_PRESET } from './utils/loanCalculations';
 import {
+  applyImport,
+  buildImportPreview,
   clearAllLoans,
   exportLoansJson,
   getActiveLoanFromStorage,
   getSavedLoans,
   getStoredDarkMode,
-  importLoansJson,
+  overwriteSavedLoans,
   saveLoanToStorage,
   deleteSavedLoan,
   setActiveLoanToStorage,
   setStoredDarkMode,
+  type ImportPreview,
 } from './utils/storage';
 import { Header } from './components/Header';
 import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
@@ -57,7 +60,9 @@ export default function App() {
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
   const [comparisonModalOpen, setComparisonModalOpen] = useState(false);
   const [savedLoansDrawerOpen, setSavedLoansDrawerOpen] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [notification, setNotification] = useState<{ msg: string; undo?: () => void } | null>(null);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize theme & storage
   useEffect(() => {
@@ -66,6 +71,15 @@ export default function App() {
 
   useEffect(() => {
     setSavedLoans(getSavedLoans());
+  }, []);
+
+  // Restore-last-session toast: the active loan was already hydrated from
+  // storage; nudge the user when it isn't the default preset.
+  useEffect(() => {
+    if (activeInput.id !== CASH2GO_PRESET.id) {
+      setNotification({ msg: 'Restored your last calculation.' });
+      notificationTimerRef.current = setTimeout(() => setNotification(null), 3000);
+    }
   }, []);
 
   // Save active loan changes to storage
@@ -78,26 +92,54 @@ export default function App() {
     return calculateLoan(activeInput);
   }, [activeInput]);
 
-  const showNotification = (msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
+  const showNotification = (msg: string, undo?: () => void) => {
+    if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+    setNotification({ msg, undo });
+    notificationTimerRef.current = setTimeout(() => setNotification(null), undo ? 6000 : 3000);
   };
 
   const handleSaveCurrentLoan = () => {
-    const updated = saveLoanToStorage(activeInput);
+    let inputToSave = activeInput;
+    // Title collision with a different id: offer overwrite vs save-as-copy.
+    const collision = savedLoans.find(
+      (l) => l.id !== activeInput.id && l.title === activeInput.title
+    );
+    if (collision) {
+      const saveAsCopy = window.confirm(
+        `A calculation named "${collision.title}" already exists.\n\nOK = Save as copy · Cancel = Overwrite the existing calculation.`
+      );
+      inputToSave = saveAsCopy
+        ? {
+            ...activeInput,
+            id: '',
+            title: `${activeInput.title || 'Untitled Loan'} (copy)`,
+          }
+        : { ...activeInput, id: collision.id };
+    }
+
+    const updated = saveLoanToStorage(inputToSave);
     setSavedLoans(updated);
-    showNotification(`Saved "${activeInput.title || 'Loan'}" to your calculations.`);
+    showNotification(`Saved "${inputToSave.title || 'Loan'}" to your calculations.`);
   };
 
   const handleDeleteSavedLoan = (id: string) => {
-    const updated = deleteSavedLoan(id);
-    setSavedLoans(updated);
+    const snapshot = [...savedLoans];
+    const removed = snapshot.find((l) => l.id === id);
+    setSavedLoans(deleteSavedLoan(id));
+    if (removed) {
+      showNotification(`Removed "${removed.title}".`, () => {
+        setSavedLoans(overwriteSavedLoans(snapshot));
+      });
+    }
   };
 
   const handleClearAllLoans = () => {
+    const snapshot = [...savedLoans];
     const updated = clearAllLoans();
     setSavedLoans(updated);
-    showNotification('All saved loan calculations removed.');
+    showNotification('All saved loan calculations removed.', () => {
+      setSavedLoans(overwriteSavedLoans(snapshot));
+    });
   };
 
   const handleExportLoans = () => {
@@ -105,19 +147,30 @@ export default function App() {
     showNotification('Backup file downloaded.');
   };
 
-  const handleImportLoans = (file: File) => {
+  const handleImportFile = (file: File) => {
     file
       .text()
       .then((text) => {
-        const res = importLoansJson(text);
-        if (res.success) {
-          setSavedLoans(getSavedLoans());
-          showNotification(`Imported ${res.count} calculation(s).`);
-        } else {
-          showNotification(res.error || 'Import failed.');
+        const preview = buildImportPreview(text);
+        if (preview.fileLoans.length === 0) {
+          showNotification('Invalid backup file structure.');
+          return;
         }
+        setImportPreview(preview);
       })
       .catch(() => showNotification('Could not read the selected file.'));
+  };
+
+  const handleApplyImport = () => {
+    if (!importPreview) return;
+    const res = applyImport(importPreview);
+    if (res.success) {
+      setSavedLoans(getSavedLoans());
+      showNotification(`Imported ${res.count} calculation(s).`);
+    } else {
+      showNotification(res.error || 'Import failed.');
+    }
+    setImportPreview(null);
   };
 
   const handleSelectSavedLoan = (loan: LoanInput) => {
@@ -164,8 +217,20 @@ export default function App() {
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8 space-y-8">
         {/* Banner notification toast */}
         {notification && (
-          <div className="fixed top-16 right-6 z-50 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xl dark:bg-blue-600 transition-all animate-bounce">
-            {notification}
+          <div className="flex items-center gap-3 fixed top-16 right-6 z-50 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xl dark:bg-blue-600 transition-all animate-bounce">
+            <span>{notification.msg}</span>
+            {notification.undo && (
+              <button
+                onClick={() => {
+                  notification.undo?.();
+                  if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+                  setNotification(null);
+                }}
+                className="rounded-lg bg-white/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide hover:bg-white/25"
+              >
+                Undo
+              </button>
+            )}
           </div>
         )}
 
@@ -376,7 +441,10 @@ export default function App() {
         onDeleteLoan={handleDeleteSavedLoan}
         onClearAllLoans={handleClearAllLoans}
         onExportLoans={handleExportLoans}
-        onImportLoans={handleImportLoans}
+        onImportFile={handleImportFile}
+        importPreview={importPreview}
+        onCancelImport={() => setImportPreview(null)}
+        onApplyImport={handleApplyImport}
         activeLoanId={activeInput.id}
       />
 

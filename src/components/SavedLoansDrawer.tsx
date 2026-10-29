@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
 import { formatCurrency } from '../utils/currencies';
+import { ImportPreview, getStorageUsage, StorageUsage } from '../utils/storage';
 import {
   BookmarkCheck,
   Trash2,
@@ -10,6 +11,8 @@ import {
   Upload,
   Download,
   Eraser,
+  FileCheck2,
+  HardDrive,
 } from 'lucide-react';
 
 interface SavedLoansDrawerProps {
@@ -20,9 +23,40 @@ interface SavedLoansDrawerProps {
   onDeleteLoan: (id: string) => void;
   onClearAllLoans: () => void;
   onExportLoans: () => void;
-  onImportLoans: (file: File) => void;
+  onImportFile: (file: File) => void;
+  importPreview: ImportPreview | null;
+  onCancelImport: () => void;
+  onApplyImport: () => void;
   activeLoanId: string;
 }
+
+const formatBytes = (bytes: number): string =>
+  bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
+
+const StorageUsageBar: React.FC = () => {
+  const usage: StorageUsage = getStorageUsage();
+  const pct = Math.min(100, (usage.totalBytes / usage.quotaBytes) * 100);
+  const warn = usage.totalBytes > usage.quotaBytes * 0.8;
+  return (
+    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-2.5 text-[10px] text-slate-500 dark:text-slate-400">
+      <div className="flex items-center justify-between font-semibold">
+        <span className="flex items-center gap-1">
+          <HardDrive className="h-3 w-3" />
+          Local storage used: {formatBytes(usage.totalBytes)}
+        </span>
+        {warn && (
+          <span className="text-amber-600 dark:text-amber-400">Near quota — export a backup</span>
+        )}
+      </div>
+      <div className="mt-1 h-1 rounded-full bg-slate-200 dark:bg-slate-700">
+        <div
+          className={`h-1 rounded-full ${warn ? 'bg-amber-500' : 'bg-blue-500'}`}
+          style={{ width: `${Math.max(2, pct)}%` }}
+        />
+      </div>
+    </div>
+  );
+};
 
 export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
   isOpen,
@@ -32,7 +66,10 @@ export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
   onDeleteLoan,
   onClearAllLoans,
   onExportLoans,
-  onImportLoans,
+  onImportFile,
+  importPreview,
+  onCancelImport,
+  onApplyImport,
   activeLoanId,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +95,35 @@ export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {/* Import preview */}
+        {importPreview && (
+          <div className="mx-5 mt-4 rounded-xl border border-blue-300 bg-blue-50/70 p-3.5 dark:border-blue-800 dark:bg-blue-950/30">
+            <div className="flex items-center gap-2 text-xs font-bold text-blue-900 dark:text-blue-200">
+              <FileCheck2 className="h-4 w-4" />
+              <span>Review backup before applying</span>
+            </div>
+            <p className="mt-1 text-[11px] text-blue-800/80 dark:text-blue-300/80 font-mono">
+              +{importPreview.newCount} new · {importPreview.updatedCount} updated ·{' '}
+              {importPreview.unchangedCount} unchanged
+              {importPreview.invalidCount > 0 && ` · ${importPreview.invalidCount} skipped`}
+            </p>
+            <div className="mt-2.5 flex items-center justify-end gap-2">
+              <button
+                onClick={onCancelImport}
+                className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onApplyImport}
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-blue-700"
+              >
+                Apply Import
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content list */}
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
@@ -149,11 +215,12 @@ export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                onImportLoans(file);
+                onImportFile(file);
               }
               e.target.value = '';
             }}
           />
+          <StorageUsageBar />
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={onExportLoans}

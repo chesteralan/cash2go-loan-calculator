@@ -1,4 +1,5 @@
 import { CurrencyConfig } from '../types/loan';
+import { getRateOverrides } from './liveRates';
 
 export const SUPPORTED_CURRENCIES: CurrencyConfig[] = [
   { code: 'PHP', symbol: '₱', name: 'Philippine Peso', rateAgainstUSD: 58.5 },
@@ -41,8 +42,14 @@ export function convertAmount(
   const from = getCurrency(fromCode);
   const to = getCurrency(toCode);
 
-  // Rate = (to / USD) / (from / USD)
-  const rate = to.rateAgainstUSD / from.rateAgainstUSD;
+  // Effective USD cross-rates: cached live rates are used when the user has
+  // fetched them; otherwise fall back to the static table.
+  const overrides = getRateOverrides()?.rates;
+  const fromUsd = from.code === 'USD' ? 1 : (overrides?.[from.code] ?? from.rateAgainstUSD);
+  const toUsd = to.code === 'USD' ? 1 : (overrides?.[to.code] ?? to.rateAgainstUSD);
+
+  // rate = (to / USD) / (from / USD); rates are units-per-1-USD
+  const rate = toUsd / fromUsd;
   const converted = amount * rate;
 
   return { converted, exchangeRate: rate };
