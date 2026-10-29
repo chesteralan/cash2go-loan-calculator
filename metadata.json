@@ -1,0 +1,6 @@
+{
+  "name": "LoanMatrix - Advanced Amortization & Loan Calculator",
+  "description": "Professional multi-currency loan and mortgage amortization calculator supporting fixed add-on and diminishing balance structures, interactive charts, PDF/Excel export, offline PWA, and cross-device sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
