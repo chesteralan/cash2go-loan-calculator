@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
 import { calculateLoan } from '../utils/loanCalculations';
-import { exportComparisonPDF } from '../utils/exportUtils';
 import { ArrowRightLeft, FileText } from 'lucide-react';
 import { comparisonPresets, currencyCounterpart } from './loan-comparison/comparisonPresets';
 import { ComparisonVerdict } from './loan-comparison/ComparisonVerdict';
@@ -86,7 +85,11 @@ export const LoanComparisonView: React.FC<LoanComparisonViewProps> = ({
               <span>Swap A ⇄ B</span>
             </button>
             <button
-              onClick={() => exportComparisonPDF(resultA, resultB)}
+              onClick={() =>
+                void import('../utils/pdfExport').then((m) =>
+                  m.exportComparisonPDF(resultA, resultB)
+                )
+              }
               className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors shadow-xs"
             >
               <FileText className="h-3.5 w-3.5" />

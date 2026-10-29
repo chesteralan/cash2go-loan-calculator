@@ -1,7 +1,7 @@
 import React from 'react';
 import { CalculationResult } from '../../types/loan';
 import { FileSpreadsheet, FileText, FileDown, Printer, Search } from 'lucide-react';
-import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/exportUtils';
+import { exportToCSV, exportToExcel } from '../../utils/exportUtils';
 
 const exportButtonClass =
   'flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750 transition-colors';
@@ -34,7 +34,7 @@ export const ScheduleActions: React.FC<{ result: CalculationResult; onPrint: () 
 }) => (
   <div className="flex items-center gap-1.5">
     <button
-      onClick={() => exportToPDF(result)}
+      onClick={() => void import('../../utils/pdfExport').then((m) => m.exportToPDF(result))}
       className={exportButtonClass}
       title="Download PDF Statement"
     >

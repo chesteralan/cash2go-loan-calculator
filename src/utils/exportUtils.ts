@@ -171,22 +171,3 @@ export function exportToExcel(result: CalculationResult): void {
   link.click();
   document.body.removeChild(link);
 }
-
-/**
- * Lazily export to PDF (loads the jsPDF chunk on demand).
- */
-export async function exportToPDF(result: CalculationResult): Promise<void> {
-  const pdf = await import('./pdfExport');
-  pdf.exportToPDF(result);
-}
-
-/**
- * Lazily export side-by-side comparison report to PDF (loads jsPDF chunk on demand).
- */
-export async function exportComparisonPDF(
-  resultA: CalculationResult,
-  resultB: CalculationResult
-): Promise<void> {
-  const pdf = await import('./pdfExport');
-  pdf.exportComparisonPDF(resultA, resultB);
-}

@@ -35,7 +35,7 @@ export const accents: Record<'blue' | 'emerald', ComparisonAccent> = {
   },
 };
 
-export const LoanKpiGrid: React.FC<{ result: CalculationResult; accent: ComparisonAccent }> = ({
+const LoanKpiGrid: React.FC<{ result: CalculationResult; accent: ComparisonAccent }> = ({
   result,
   accent,
 }) => {
@@ -75,7 +75,7 @@ export const LoanKpiGrid: React.FC<{ result: CalculationResult; accent: Comparis
   );
 };
 
-export const SavedLoanPicker: React.FC<{
+const SavedLoanPicker: React.FC<{
   savedLoans: SavedLoanRecord[];
   onSelect: (loan: LoanInput) => void;
 }> = ({ savedLoans, onSelect }) => {
