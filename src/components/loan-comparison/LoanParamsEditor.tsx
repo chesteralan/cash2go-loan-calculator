@@ -42,7 +42,7 @@ export const LoanParamsEditor: React.FC<{
       </select>
     </div>
 
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <CompactNumber
         label="Principal Amount"
         value={loan.principal}
@@ -58,7 +58,7 @@ export const LoanParamsEditor: React.FC<{
       />
     </div>
 
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <CompactNumber
         label={`Term (${loan.termUnit})`}
         value={loan.termValue}

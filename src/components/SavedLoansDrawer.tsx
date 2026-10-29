@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
 import { formatCurrency } from '../utils/currencies';
 import { ImportPreview, getStorageUsage, StorageUsage } from '../utils/storage';
@@ -73,12 +74,23 @@ export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
   activeLoanId,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useModalA11y<HTMLDivElement>(isOpen ? onClose : undefined);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all">
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`My Saved Loan Calculations (${savedLoans.length})`}
+        tabIndex={-1}
+        className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
@@ -147,7 +159,7 @@ export const SavedLoansDrawer: React.FC<SavedLoansDrawerProps> = ({
                   className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
                     isActive
                       ? 'border-blue-600 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/30'
-                      : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-850 dark:hover:border-slate-700'
+                      : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/60 dark:hover:border-slate-700'
                   }`}
                 >
                   <div className="flex-1 min-w-0 pr-3">

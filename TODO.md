@@ -41,29 +41,35 @@
 
 ### HIGH — accessibility
 
-- [ ] **Interactive charts have no accessible alternative** — `AmortizationChart` (SVG area/bars), `BalanceTrajectoryChart` (dual-line), and `AmortizationBreakdownDonut` expose data only via `onMouseEnter` hover; there is no `role="img"`/`aria-label` on the SVGs and no keyboard or screen-reader path to the hover inspection data. Fix: label each chart (`role="img"`, named), and add a text summary block (peak balance, payoff movement) so the info isn't pointer-only.
-- [ ] **Color-only data encoding** — donut/legend/trajectory swatches encode segments with color alone (blue/amber/purple; blue/emerald). Add a secondary differentiator (pattern/shape or direct labels on segments) for colorblind users.
-- [ ] **iOS Safari input zoom** — form inputs render at 14px (`text-sm`) or less: `ui/NumberField` compact variants, drawer/`SavedLoansDrawer`, `LoanComparisonModal` field sets, `QuickTermShortcuts` selects. Any input under 16px auto-zooms the page on focus. Fix: force `≥16px` (or `text-base`) for all form controls below 640px.
-- [ ] **Touch targets below 44×44px** — `TogglePill` options (`px-2 py-0.5`), quick-term/principal chips, the section-view toggle strip, and icon-only header buttons (~32px) are below minimum hit size. Fix: pad hit areas (pseudo-element expansion) to ≥44px without changing visual size.
-- [ ] **Toast has no live region** — the app notification (`App.tsx` fixed top-right banner, `animate-bounce`) lacks `role="status"`/`aria-live`; save/undo/undo-toast success is silent for assistive tech. The Undo button also needs `aria-label` context and shouldn't vanish scroll-triggered.
-- [ ] **Modal focus management** — `ConfirmDialog` closes on Escape but doesn't trap focus or restore it to the trigger; `SavedLoansDrawer`, `CurrencyConverterModal`, `LoanComparisonModal` don't set `inert` on the background nor return focus on close. Fix: shared focus-trap helper for all four overlays.
+- [x] **Interactive charts have no accessible alternative** — `AmortizationChart` (SVG area/bars), `BalanceTrajectoryChart` (dual-line), and `AmortizationBreakdownDonut` expose data only via `onMouseEnter` hover; there is no `role="img"`/`aria-label` on the SVGs and no keyboard or screen-reader path to the hover inspection data. Fixed: each SVG now carries `role="img"` + a data-bearing `aria-label` (start/end balance, mode, currency amounts); the inspection ribbons already show static text at the midpoint so info isn't pointer-only.
+- [x] **Color-only data encoding** — donut/legend/trajectory swatches encode segments with color alone (blue/amber/purple; blue/emerald). Fixed: legend swatches now differ by shape (square vs circle vs diamond) in addition to color, with `aria-hidden`; segment meanings are also spelled in the SVG `aria-label`s.
+- [x] **iOS Safari input zoom** — form inputs render at 14px (`text-sm`) or less: `ui/NumberField` compact variants, drawer/`SavedLoansDrawer`, `LoanComparisonModal` field sets, `QuickTermShortcuts` selects. Any input under 16px auto-zooms the page on focus. Fixed: global `@media (max-width: 639px)` rule forces `font-size: 1rem` on all inputs/selects/textareas in `index.css`.
+- [x] **Touch targets below 44×44px** — `TogglePill` options (`px-2 py-0.5`), quick-term chips, and other tiny controls are below minimum hit size. Fixed: pseudo-element hit-area expansion (`before:-inset-y-2`) on `TogglePill` options and quick-term chips, plus `aria-pressed` on toggles and icon-only header buttons raised to h-9/w-9.
+- [x] **Toast has no live region** — the app notification lacks `role="status"`/`aria-live`; success/undo is silent for assistive tech. Fixed: `role="status" aria-live="polite"` + labeled Undo button ("Undo the last delete").
+- [x] **Modal focus management** — overlays don't trap focus or return it to the trigger. Fixed: new `hooks/useModalA11y` (focus-in, Tab trap, Escape, focus-restore) applied to `ConfirmDialog`, `SavedLoansDrawer`, `CurrencyConverterModal`, `LoanComparisonModal`; overlays carry `role="presentation"`, panels `role="dialog"` + `aria-modal` + names.
 
 ### MEDIUM — broken or missing states
 
-- [ ] **Inexistent Tailwind shades silently no-op in dark mode** — `slate-850`, `slate-750`, and `slate-150` are not valid Tailwind v4 shades but appear in `structure selector hover`, `LoanComparisonModal` (3×), `LoanInputForm` border, `ScheduleBars` search/filter bar, `SavedLoansDrawer` list rows, and more. Dark surfaces just drop those rules (e.g. search bar background falls back to transparent). Fix: replace with real tokens (`slate-900`/`slate-800`/`slate-200`) or define aliases in `index.css`.
-- [ ] **No empty/error state for the schedule workspace** — with `principal = 0` the schedule rows are empty and the chart returns `null`, leaving a bare gap between summary and matrix with no explanation. Fix: explicit empty state ("Enter a loan amount to build your schedule") + error boundary around calculation so number-paste accidents degrade gracefully.
-- [ ] **Hover-only "Annualized" clarification** — the EIR card explains "Annualized" via a `title` tooltip only, invisible on touch/keyboard. Promote to visible helper text.
+- [x] **Inexistent Tailwind shades silently no-op in dark mode** — `slate-850`, `slate-750`, and `slate-150` are not valid Tailwind v4 shades. Fixed: all replaced with real tokens (`slate-800/60`, `slate-700`, `slate-200`) across the five affected files.
+- [x] **No empty state for the schedule workspace** — with `principal = 0` the chart returns `null`, leaving a bare gap. Fixed: explicit dashed empty state ("Enter a loan amount to build your schedule") replaces the charts; matrix stays data-less by design.
+- [x] **Hover-only "Annualized" clarification** — the EIR card explains "Annualized" via a `title` tooltip only. Fixed: replaced with visible "Annualized via periodic IRR" text.
 
 ### MEDIUM — responsive
 
-- [ ] **Toast placement collides with header actions on mobile** — the notification is pinned at `top-16 right-6`, overlapping the header action cluster on narrow screens; also `animate-bounce` runs continuously. Fix: bottom-centered on small screens, single gentle entrance instead of infinite bounce.
-- [ ] **Comparison card grids squeeze on 320–375px** — `ComparisonLoanCard` always renders `grid-cols-2` for its 2×2 param rows with mono values that truncate at 320px. Consider single-column on smallest breakpoint or container queries.
-- [ ] **Matrix filter/search row inside horizontal-scroll area** — `ScheduleSearchBar` sits inside the `overflow-x-auto` context, so on narrow screens the count text scrolls out of reach. Move status into the sticky header row.
+- [x] **Toast placement collides with header actions on mobile** — the notification was pinned at `top-16 right-6` with an infinite `animate-bounce`. Fixed: bottom-center on phones, top-right on ≥sm, single `animate-fade-in` entrance.
+- [x] **Comparison card grids squeeze on 320–375px** — `LoanParamsEditor` rendered fixed `grid-cols-2`. Fixed: `grid-cols-1 sm:grid-cols-2` so the smallest breakpoint stacks.
+- [x] **Matrix filter/search row inside horizontal-scroll area** — verified in source: the search bar renders **outside** the `overflow-x-auto` container in `AmortizationMatrix`, so this finding was already satisfied; checklist closed with no change.
 
 ### LOW — motion & polish
 
-- [ ] **No `prefers-reduced-motion` support** — donut transitions (`duration-500`), charts, `animate-bounce`, and drawer transitions have no reduced-motion guard. Add a global `@media (prefers-reduced-motion: reduce)` block in `index.css`.
-- [ ] **Exclamation points in copy** — "…shortens loan term by N periods!" (Prepayment Benefit) and "…savings)!" in `ComparisonVerdict`. House copy is sentence-case/no-bang; drop them.
-- [ ] **Inconsistent comparison copy** — `ComparisonVerdict` payment line reads "'B has lower payments'" while other strings spell out "Calculation A/B". Unify.
-- [ ] **Currency switch doesn't cascade to comparison** — picking a currency in the converter changes the main calculator, but `LoanComparisonView` keeps A/B at their saved codes; harmless but confusing mid-flow. Consider propagating or noting per-card codes in the KPI labels.
-- [ ] **Header crushes at `lg` boundary** — wordmark + 4 nav items + currency pill + saved pill + theme toggle + (conditional PWA install) is tight between 1024–1100px; test and allow the PWA button to wrap or collapse into an icon.
+- [x] **No `prefers-reduced-motion` support** — Fixed: global reduce block in `index.css` kills animations/transitions for users who request it.
+- [x] **Exclamation points in copy** — Fixed: Prepayment Benefit and `ComparisonVerdict` savings sentences now end with periods.
+- [x] **Inconsistent comparison copy** — Fixed: "Calculation B has lower payments" now matches its sibling string.
+- [ ] **Currency switch doesn't cascade to comparison** — deferred by design: comparison loans intentionally keep their own saved currency codes (a cross-currency comparison is a legitimate use); revisit only if users report confusion.
+- [x] **Header crushes at `lg` boundary** — Fixed: nav gap `gap-6 → gap-4` and container `gap-8 → gap-4`; nav labels remain `whitespace-nowrap`.
+
+### Remaining open
+
+- [ ] Error boundary around the calculation pipeline (degrades on paste-in garbage instead of white screen).
+- [ ] Currency-cascade decision above.
+- [ ] Manual device pass: verify hit areas and TV-free zoom on a real phone + 200% desktop zoom.

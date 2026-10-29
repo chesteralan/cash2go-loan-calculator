@@ -119,7 +119,7 @@ export const LoanInputForm: React.FC<LoanInputFormProps> = ({
           />
         </div>
 
-        <div className="border-t border-slate-150 dark:border-slate-800 pt-3">
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-3">
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}

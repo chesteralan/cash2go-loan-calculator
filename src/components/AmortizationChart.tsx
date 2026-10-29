@@ -90,6 +90,8 @@ export const AmortizationChart: React.FC<{ result: CalculationResult }> = ({ res
         <svg
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           className="w-full h-auto select-none"
+          role="img"
+          aria-label={`Loan amortization trajectory across ${displayPoints.length} payments: remaining payment balance starts at ${displayPoints[0].remainingBalance.toFixed(2)} and ends at ${displayPoints[displayPoints.length - 1].remainingBalance.toFixed(2)}. Displayed mode: ${chartMode === 'balance' ? 'balance payoff area' : 'principal versus interest bars'}.`}
           onMouseLeave={() => setHoverIndex(null)}
         >
           <ChartGridLines layout={layout} maxValue={maxBalance} />

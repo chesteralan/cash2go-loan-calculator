@@ -109,9 +109,7 @@ export const LoanSummaryCards: React.FC<LoanSummaryCardsProps> = ({ result }) =>
               <span>Nominal APR: {nominalAnnualRate.toFixed(2)}%</span>
             )}
             <span>·</span>
-            <span title="Calculated via central bank Internal Rate of Return (IRR)">
-              Annualized
-            </span>
+            <span>Annualized via periodic IRR</span>
           </div>
         </div>
       </div>
@@ -125,7 +123,7 @@ export const LoanSummaryCards: React.FC<LoanSummaryCardsProps> = ({ result }) =>
               <strong>Prepayment Benefit:</strong> Extra payment of{' '}
               {formatCurrency(input.extraPaymentPerPeriod, input.currencyCode)} saves{' '}
               <strong>{formatCurrency(savedInterestWithExtra, input.currencyCode)}</strong> in
-              interest and shortens loan term by <strong>{periodsSavedWithExtra} periods</strong>!
+              interest and shortens loan term by <strong>{periodsSavedWithExtra} periods</strong>.
             </span>
           </div>
           <span className="hidden sm:inline font-mono font-bold text-emerald-700 dark:text-emerald-300">

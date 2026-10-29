@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { SUPPORTED_CURRENCIES, convertAmount, formatCurrency } from '../utils/currencies';
 import { clearRateOverrides, getRateOverrides, refreshLiveRates } from '../utils/liveRates';
 import { CalculationResult } from '../types/loan';
-import { Globe, ArrowRightLeft, X, Check } from 'lucide-react';
+import { Globe, X, Check } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface CurrencyConverterModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({
   const totalCostConv = convertAmount(totalCost, input.currencyCode, targetCode);
 
   const rateCache = getRateOverrides();
+  const panelRef = useModalA11y<HTMLDivElement>(isOpen ? onClose : undefined);
 
   const handleRefreshRates = async () => {
     setFetchingRates(true);
@@ -42,8 +44,18 @@ export const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all">
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="International Currency Converter"
+        tabIndex={-1}
+        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all"
+      >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">

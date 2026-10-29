@@ -14,16 +14,27 @@ export function TogglePill<T extends string>({
   size = 'md',
 }: TogglePillProps<T>) {
   const pad = size === 'sm' ? 'px-2 py-0.5' : 'px-3 py-1.5';
+  const ariaLabelFor = (label: React.ReactNode): string | undefined => {
+    if (typeof label === 'string') return label;
+    if (React.isValidElement(label)) {
+      const group = (label.props as { children?: unknown }).children;
+      if (Array.isArray(group)) {
+        return group.filter((c) => typeof c === 'string').join(' ');
+      }
+      if (typeof group === 'string') return group;
+    }
+    return undefined;
+  };
   return (
-    <div
-      className={`flex rounded-md bg-slate-100 p-0.5 dark:bg-slate-800 text-[11px] font-semibold`}
-    >
+    <div className="flex rounded-md bg-slate-100 p-0.5 dark:bg-slate-800 text-[11px] font-semibold">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`${pad} rounded-md font-medium transition-colors ${
+          aria-pressed={value === o.value}
+          aria-label={ariaLabelFor(o.label)}
+          className={`${pad} relative rounded-md font-medium transition-colors before:absolute before:inset-x-0 before:-inset-y-2 before:content-[''] ${
             value === o.value
               ? 'bg-white text-blue-600 shadow-xs dark:bg-slate-700 dark:text-blue-400'
               : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'

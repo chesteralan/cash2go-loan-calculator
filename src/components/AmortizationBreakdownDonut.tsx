@@ -41,7 +41,13 @@ export const AmortizationBreakdownDonut: React.FC<AmortizationBreakdownDonutProp
       <div className="mt-4 flex flex-col sm:flex-row items-center justify-around gap-6">
         {/* SVG Donut */}
         <div className="relative flex items-center justify-center shrink-0">
-          <svg width={size} height={size} className="transform -rotate-90">
+          <svg
+            width={size}
+            height={size}
+            className="transform -rotate-90"
+            role="img"
+            aria-label={`Loan cost composition: principal ${formatCurrency(totalPrincipal, input.currencyCode)} (${(principalRatio * 100).toFixed(0)}%), interest ${formatCurrency(totalInterest, input.currencyCode)} (${(interestRatio * 100).toFixed(0)}%)${totalFees > 0 ? `, fees ${formatCurrency(totalFees, input.currencyCode)} (${(feesRatio * 100).toFixed(0)}%)` : ''}.`}
+          >
             {/* Background ring */}
             <circle
               cx={size / 2}
@@ -108,7 +114,7 @@ export const AmortizationBreakdownDonut: React.FC<AmortizationBreakdownDonutProp
         <div className="w-full space-y-3 text-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-sm bg-blue-600" />
+              <span className="h-3 w-3 rounded-sm bg-blue-600" aria-hidden="true" />
               <span className="text-slate-600 dark:text-slate-300 font-medium">
                 Original Principal
               </span>
@@ -123,7 +129,7 @@ export const AmortizationBreakdownDonut: React.FC<AmortizationBreakdownDonutProp
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-sm bg-amber-500" />
+              <span className="h-3 w-3 rounded-full bg-amber-500" aria-hidden="true" />
               <span className="text-slate-600 dark:text-slate-300 font-medium">
                 Interest Expense
               </span>
@@ -139,7 +145,7 @@ export const AmortizationBreakdownDonut: React.FC<AmortizationBreakdownDonutProp
           {totalFees > 0 && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-sm bg-purple-500" />
+                <span className="h-3 w-3 rotate-45 bg-purple-500" aria-hidden="true" />
                 <span className="text-slate-600 dark:text-slate-300 font-medium">
                   Fees & Closing
                 </span>

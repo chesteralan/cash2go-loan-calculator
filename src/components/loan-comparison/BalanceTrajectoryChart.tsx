@@ -69,13 +69,13 @@ export const BalanceTrajectoryChart: React.FC<{
         </div>
         <div className="flex items-center gap-4 text-xs font-semibold">
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-blue-600" />
+            <span className="h-3 w-3 rounded-sm bg-blue-600" aria-hidden="true" />
             <span className="text-blue-700 dark:text-blue-400 truncate max-w-[150px]">
               {resultA.input.title || 'Calculation A'}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-emerald-600" />
+            <span className="h-3 w-3 rounded-full bg-emerald-600" aria-hidden="true" />
             <span className="text-emerald-700 dark:text-emerald-400 truncate max-w-[150px]">
               {resultB.input.title || 'Calculation B'}
             </span>
@@ -87,6 +87,8 @@ export const BalanceTrajectoryChart: React.FC<{
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
           className="w-full h-auto select-none"
+          role="img"
+          aria-label={`Comparative balance payoff: ${resultA.input.title || 'Loan A'} (blue) versus ${resultB.input.title || 'Loan B'} (green), both declining to zero within ${Math.max(resultA.schedule.length, resultB.schedule.length)} payments.`}
           onMouseLeave={() => setHoverPeriodIndex(null)}
         >
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {

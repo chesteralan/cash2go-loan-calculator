@@ -142,11 +142,11 @@ export const ChartLegend: React.FC<{
   <div className="mt-2 flex items-center justify-between flex-wrap gap-3 text-xs text-slate-600 dark:text-slate-300 px-2">
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-1.5">
-        <span className="h-3 w-3 rounded-sm bg-blue-600" />
+        <span className="h-3 w-3 rounded-sm bg-blue-600" aria-hidden="true" />
         <span>Principal Balance / Equity</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="h-3 w-3 rounded-sm bg-amber-500" />
+        <span className="h-3 w-3 rounded-full bg-amber-500" aria-hidden="true" />
         <span>Interest Paid</span>
       </div>
     </div>

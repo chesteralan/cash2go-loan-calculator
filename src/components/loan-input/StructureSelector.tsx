@@ -41,7 +41,7 @@ export const StructureSelector: React.FC<StructureSelectorProps> = ({ active, on
         className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
           active === o.value
             ? 'border-blue-600 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/30 ring-1 ring-blue-500'
-            : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-750'
+            : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700'
         }`}
       >
         <div className="flex items-center justify-between">

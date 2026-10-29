@@ -41,7 +41,7 @@ export const ComparisonVerdict: React.FC<{
                   </span>{' '}
                   in total interest (
                   {((interestDifference / (resultA.totalInterest || 1)) * 100).toFixed(1)}%
-                  savings)!
+                  savings).
                 </>
               ) : (
                 <>
@@ -54,7 +54,7 @@ export const ComparisonVerdict: React.FC<{
                   </span>{' '}
                   in total interest (
                   {((Math.abs(interestDifference) / (resultB.totalInterest || 1)) * 100).toFixed(1)}
-                  % savings)!
+                  % savings).
                 </>
               )}
             </h3>
@@ -63,7 +63,10 @@ export const ComparisonVerdict: React.FC<{
               <span className="font-mono font-semibold">
                 {formatCurrency(Math.abs(paymentDifference), currencyCode)}
               </span>{' '}
-              ({paymentDifference > 0 ? 'B has lower payments' : 'Calculation A has lower payments'}
+              (
+              {paymentDifference > 0
+                ? 'Calculation B has lower payments'
+                : 'Calculation A has lower payments'}
               ).
             </p>
           </div>
