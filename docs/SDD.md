@@ -12,7 +12,7 @@ Advanced Amortization & Loan Calculator (PWA)
 
 ### 1.1 Purpose
 
-This document describes the software design of LoanMatrix, a client-side loan and mortgage amortization calculator. It covers the system architecture, calculation engine, data model, storage/sync strategy, PWA behavior, and UI composition.
+This document describes the software design of LoanMatrix, a client-side loan and mortgage amortization calculator. It covers the system architecture, calculation engine, data model, local persistence & backup strategy, PWA behavior, and UI composition.
 
 ### 1.2 Scope
 
@@ -20,7 +20,7 @@ LoanMatrix is a single-page web application (no backend at runtime) built with R
 
 - **Fixed Add-On loans** (flat-rate installment loans, e.g., Metrobank Cash2Go personal loans) — rate entered as a monthly add-on rate.
 - **Diminishing (Reducing) Balance loans** (mortgages, commercial loans) — rate entered as an annual APR.
-- Six payment intervals (weekly → annually), extra-payment simulation, one-time fees, multi-currency support, PDF/Excel export, saved-loan management, offline PWA operation, and cross-device sync via encoded export bundles.
+- Six payment intervals (weekly → annually), extra-payment simulation, one-time fees, multi-currency support (with optional opt-in live FX rates), PDF/Excel export, saved-loan management, offline PWA operation, and fully local JSON backup file export/import. **The app ships zero network transport of user data.**
 
 ### 1.3 Definitions & Acronyms
 
@@ -31,7 +31,7 @@ LoanMatrix is a single-page web application (no backend at runtime) built with R
 | Add-on rate            | Flat rate applied to full principal for the entire term; interest not amortized                 |
 | Fixed add-on structure | `totalInterest = principal × monthlyAddOn × totalMonths`; repayment split evenly across periods |
 | Diminishing balance    | Interest computed on the outstanding balance each period (standard amortization)                |
-| Sync bundle            | Base64-encoded JSON payload containing all saved loans plus a device Sync ID                    |
+| Backup file            | Local JSON file (`loanmatrix-backup-<date>.json`) carrying all saved loans for portability      |
 
 ### 1.4 References
 
@@ -52,24 +52,28 @@ Single-tier client application. All computation, persistence, and rendering happ
 │  Browser (SPA / PWA)                                         │
 │                                                              │
 │  App.tsx  ──── state: activeInput, savedLoans, darkMode,     │
-│    │                 activeTab, modal flags, notification    │
+│    │                 activeTab, modal flags, notification,   │
+│    │                 importPreview                           │
 │    │                                                          │
 │    ├─► components/   Header, LoanInputForm, LoanSummaryCards,│
 │    │                 AmortizationChart,                      │
 │    │                 AmortizationBreakdownDonut,             │
 │    │                 AmortizationMatrix, Cash2GoReferenceCard│
-│    │                 modals: CurrencyConverter, CloudSync,   │
+│    │                 modals: CurrencyConverter,              │
 │    │                 LoanComparison, SavedLoansDrawer,       │
 │    │                 OfflineIndicator                        │
+│    │                 (charts/matrix/modals are React.lazy)   │
 │    │                                                          │
 │    ├─► utils/loanCalculations.ts   ◄── pure calc engine      │
-│    ├─► utils/storageAndSync.ts     ◄── localStorage + sync   │
-│    ├─► utils/currencies.ts         ◄── FX table + formatting│
-│    ├─► utils/exportUtils.ts        ◄── PDF (jsPDF) / Excel  │
+│    ├─► utils/storage.ts            ◄── localStorage + backup │
+│    ├─► utils/currencies.ts         ◄── FX table + live-rates │
+│    ├─► utils/exportUtils.ts        ◄── CSV / Excel / PDF     │
+│    │                             (pdfExport lazy chunk)     │
+│    ├─► utils/liveRates.ts          ◄── opt-in FX fetch cache │
 │    └─► hooks/usePWA.ts             ◄── install prompt,      │
 │                           offline detection                  │
 │                                                              │
-│  Persistence: localStorage (5 keys, see §5)                  │
+│  Persistence: localStorage (4 keys, see §5)                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -84,38 +88,38 @@ Single-tier client application. All computation, persistence, and rendering happ
 | Icons        | lucide-react                               | Consistent SVG iconography                            |
 | Motion       | motion                                     | Micro-interactions                                    |
 | Export       | jspdf + jspdf-autotable                    | Client-side PDF amortization schedules                |
-| PWA          | manifest.json + usePWA hook                | Installable, offline-capable                          |
+| PWA          | vite-plugin-pwa `manifest.webmanifest`     | Installable, offline-capable                          |
 | Quality      | knip, fallow, husky, lint-staged, prettier | Dead-code detection, pre-commit hygiene               |
 
 ### 2.3 Design Principles
 
 1. **Pure calculation core** — `loanCalculations.ts` has zero DOM/side-effect dependencies; input in, `CalculationResult` out.
 2. **Derived state, not stored state** — the amortization schedule is recomputed via `useMemo` on every `activeInput` change; nothing about results is persisted.
-3. **localStorage as the only store** — no backend, no network dependency at runtime; sync is achieved through exportable bundles.
+3. **localStorage as the only store** — no backend, no runtime network transport of user data; portability is achieved through local JSON backup files.
 4. **Graceful degradation** — storage reads wrapped in try/catch; presets used as fallbacks.
 
 ---
 
 ## 3. Functional Requirements (implemented)
 
-| ID    | Feature                                                                                                                                            | Module(s)                                                      |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| FR-01 | Loan input form: principal, rate, rate period, structure, term (months/years), payment interval, start date, extra payment, one-time fee, currency | `LoanInputForm`                                                |
-| FR-02 | Two loan structures: fixed add-on and diminishing balance                                                                                          | `loanCalculations.calculateLoan`                               |
-| FR-03 | Six payment intervals with correct period counts and date stepping                                                                                 | `getIntervalFrequency`, `getTotalPeriods`, `addIntervalToDate` |
-| FR-04 | Effective interest rate (annualized IRR) disclosure for fixed add-on loans                                                                         | `calculatePeriodicIRR` (Newton–Raphson)                        |
-| FR-05 | Extra per-period payment simulation with interest-savings and periods-saved report                                                                 | diminishing-balance loop + baseline comparison                 |
-| FR-06 | Period-by-period amortization schedule table + annual matrix grouping                                                                              | `AmortizationMatrix`, `annualMatrix`                           |
-| FR-07 | Charts: balance-over-time chart + principal/interest donut                                                                                         | `AmortizationChart`, `AmortizationBreakdownDonut`              |
-| FR-08 | Summary cards: periodic payment, total interest, total cost, payoff date, savings                                                                  | `LoanSummaryCards`                                             |
-| FR-09 | Saved loans: create/update/delete/load, seeded with two presets                                                                                    | `storageAndSync`                                               |
-| FR-10 | Loan comparison view/modal across saved loans                                                                                                      | `LoanComparisonModal`, `LoanComparisonView`                    |
-| FR-11 | Multi-currency: 12-currency table, formatting, cross-currency conversion                                                                           | `currencies.ts`, `CurrencyConverterModal`                      |
-| FR-12 | PDF/Excel export                                                                                                                                   | `exportUtils.ts`                                               |
-| FR-13 | Cross-device sync via Sync ID + base64 bundle export/restore                                                                                       | `CloudSyncModal`, `generateSyncBundle` / `restoreSyncBundle`   |
-| FR-14 | Offline PWA: manifest, install prompt, offline indicator                                                                                           | `manifest.json`, `usePWA`, `OfflineIndicator`                  |
-| FR-15 | Dark mode toggle, persisted                                                                                                                        | `Header`, `DARK_MODE_KEY`                                      |
-| FR-16 | Cash2Go benchmark reference card with auto-detection of the preset configuration                                                                   | `Cash2GoReferenceCard`, `isCash2GoActive`                      |
+| ID    | Feature                                                                                                                                            | Module(s)                                                              |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| FR-01 | Loan input form: principal, rate, rate period, structure, term (months/years), payment interval, start date, extra payment, one-time fee, currency | `LoanInputForm`                                                        |
+| FR-02 | Two loan structures: fixed add-on and diminishing balance                                                                                          | `loanCalculations.calculateLoan`                                       |
+| FR-03 | Six payment intervals with correct period counts and date stepping                                                                                 | `getIntervalFrequency`, `getTotalPeriods`, `addIntervalToDate`         |
+| FR-04 | Effective interest rate (annualized IRR) disclosure for fixed add-on loans                                                                         | `calculatePeriodicIRR` (Newton–Raphson)                                |
+| FR-05 | Extra per-period payment simulation with interest-savings and periods-saved report                                                                 | diminishing-balance loop + baseline comparison                         |
+| FR-06 | Period-by-period amortization schedule table + annual matrix grouping                                                                              | `AmortizationMatrix`, `annualMatrix`                                   |
+| FR-07 | Charts: balance-over-time chart + principal/interest donut                                                                                         | `AmortizationChart`, `AmortizationBreakdownDonut`                      |
+| FR-08 | Summary cards: periodic payment, total interest, total cost, payoff date, savings                                                                  | `LoanSummaryCards`                                                     |
+| FR-09 | Saved loans: create/update/delete (with undo toast)/load, save-as-copy on title collision, seeded with two presets, local storage usage meter      | `storage.ts`, `SavedLoansDrawer`, `App.tsx`                            |
+| FR-10 | Loan comparison view/modal across saved loans                                                                                                      | `LoanComparisonModal`, `LoanComparisonView`                            |
+| FR-11 | Multi-currency: 12-currency table, formatting, cross-currency conversion, optional opt-in live FX rates                                            | `currencies.ts`, `liveRates.ts`, `CurrencyConverterModal`              |
+| FR-12 | PDF/Excel/CSV export (PDF jsPDF chunk lazily loaded, fully client-side)                                                                            | `exportUtils.ts`, `pdfExport.ts`                                       |
+| FR-13 | Local JSON backup export/import with reviewed diff preview (+ deleted/clear-all undo)                                                              | `storage.ts`, `SavedLoansDrawer`, `App.tsx`                            |
+| FR-14 | Offline PWA: generated manifest, install prompt, offline indicator                                                                                 | `manifest.webmanifest` (vite-plugin-pwa), `usePWA`, `OfflineIndicator` |
+| FR-15 | Dark mode toggle, persisted                                                                                                                        | `Header`, `DARK_MODE_KEY`                                              |
+| FR-16 | Cash2Go benchmark reference card with auto-detection of the preset configuration                                                                   | `Cash2GoReferenceCard`, `isCash2GoActive`                              |
 
 ---
 
@@ -158,6 +162,10 @@ Simulation loop (`while balance > 0.001 && p ≤ 2×scheduledPeriods`):
 
 Baseline run (no extras) is simulated to compute `savedInterestWithExtra` and `periodsSavedWithExtra`.
 
+**Add-on rebate model.** For `fixed_addon` loans with extra payments, interest for all future unpaid periods is calculated flat on the original principal, so paying early entitles the borrower to "rebate" the flat interest of periods that no longer occur: every short schedule consumes less flat interest, which is reported through `savedInterestWithExtra` against the baseline run.
+
+**Rounding discipline.** Payments keep full float precision internally. The emitted schedule rounds every row to 2 decimals, absorbing any residual drift in the **final row** so the cumulative totals reconcile exactly with the reported lifespan totals; KPI/currency display rounds half-up to 2 decimals.
+
 ### 4.4 Annual Matrix
 
 Rows are bucketed by payment count: `frequency` rows per bucket (handles the final partial bucket at `index === schedule.length - 1`). `calendarYear` derives from the start date's year + bucket index.
@@ -172,7 +180,7 @@ Rows are bucketed by payment count: `frequency` rows per bucket (handles the fin
 
 ---
 
-## 5. Data Model & Persistence (`src/types/loan.ts`, `src/utils/storageAndSync.ts`)
+## 5. Data Model & Persistence (`src/types/loan.ts`, `src/utils/storage.ts`)
 
 ### 5.1 Core Types
 
@@ -186,20 +194,24 @@ Rows are bucketed by payment count: `frequency` rows per bucket (handles the fin
 
 ### 5.2 localStorage Keys
 
-| Key                         | Type                | Contents                                                                      |
-| --------------------------- | ------------------- | ----------------------------------------------------------------------------- |
-| `loanmatrix_saved_loans_v1` | `SavedLoanRecord[]` | All saved loans, seeded with Cash2Go + standard mortgage presets on first run |
-| `loanmatrix_active_loan_v1` | `LoanInput`         | Currently loaded loan                                                         |
-| `loanmatrix_sync_id_v1`     | `string`            | Device Sync ID `LM-XXXXXX-…` (random + epoch36)                               |
-| `loanmatrix_theme_dark`     | `boolean`           | Dark-mode preference                                                          |
+| Key                         | Type                               | Contents                                                                      |
+| --------------------------- | ---------------------------------- | ----------------------------------------------------------------------------- |
+| `loanmatrix_saved_loans_v1` | `SavedLoanRecord[]`                | All saved loans, seeded with Cash2Go + standard mortgage presets on first run |
+| `loanmatrix_active_loan_v1` | `LoanInput`                        | Currently loaded loan                                                         |
+| `loanmatrix_theme_dark`     | `boolean`                          | Dark-mode preference                                                          |
+| `loanmatrix_fx_rates_v1`    | `{ base:'USD', fetchedAt, rates }` | Optional cached live FX rates from the opt-in fetch                           |
 
 ### 5.3 Save/Upsert Semantics
 
 `saveLoanToStorage` upserts by `input.id`; missing IDs are minted as `loan-<epoch>`.
 
-### 5.4 Sync Design (offline-first)
+### 5.4 Backup Design (client-only portability)
 
-Sync is **transport-less and user-mediated**: `SyncPayload { version: 1, syncId, timestamp, loans[] }` is JSON → UTF-8 → base64 (`generateSyncBundle`). A user copies the bundle on device A and pastes it into device B, where `restoreSyncBundle` decodes and merges/overwrites `SAVED_LOANS_KEY`. The `'version'` field supports future schema migrations. The Sync ID identifies the originating device inside the bundle. Because payloads are plain base64 (not encrypted), they carry no confidential data beyond loan figures the user typed themselves — acceptable for a client-only tool; if cloud transport is added later, encryption at rest becomes a requirement.
+There is **no cross-device sync of any kind** (the earlier base64 copy/paste `SyncPayload` bundle and `CloudSyncModal` were removed in v0.1.1). Portability is achieved entirely with local JSON backup files:
+
+- **Export** — `exportLoansJson` writes `ExportPayload { app:'loanmatrix', version:1, exportedAt, loans[] }` to a downloadable `loanmatrix-backup-<date>.json`.
+- **Import (reviewed)** — the file is parsed by `buildImportPreview`, which diffs it against the saved list into `newCount / updatedCount / unchangedCount / invalidCount` records; the user reviews the counts in the drawer and confirms before `applyImport` merges by id and re-sorts by timestamp. Payloads are plain user-controlled files, so no encryption-at-rest is required; nothing from the file is transmitted anywhere.
+- **Live FX (opt-in, never automatic)** — `utils/liveRates.ts` can fetch public USD-based rates (`open.er-api.com`, no API key) on explicit user action only, caching them under `loanmatrix_fx_rates_v1`. `convertAmount` reads cached overrides over the static table and the app remains fully functional offline without them.
 
 ---
 
@@ -213,7 +225,7 @@ State:
 - `savedLoans: SavedLoanRecord[]` (hydrated on mount)
 - `darkMode: boolean` (persisted)
 - `activeTab: 'calculator' | 'matrix' | 'benchmark' | …` (matrix/benchmark act as smooth-scroll anchors)
-- Modal open flags: currency converter, cloud sync, loan comparison, saved-loans drawer
+- Modal open flags: currency converter, loan comparison, saved-loans drawer
 - Transient notification toast (3 s auto-dismiss)
 
 Derived: `calculationResult = useMemo(() => calculateLoan(activeInput), [activeInput])` — the single source of truth for all downstream UI.
@@ -234,7 +246,7 @@ Cash2Go detection (`isCash2GoActive`) is a value-equality check on structure/pri
 | `AmortizationMatrix`                         | Annual (year-grouped) schedule table                                                      |
 | `Cash2GoReferenceCard`                       | Benchmark comparison against the Cash2Go reference deal                                   |
 | `CurrencyConverterModal`                     | Cross-currency conversion panel                                                           |
-| `CloudSyncModal`                             | Sync ID display, bundle export/import                                                     |
+| `LoanComparisonModal`                        | Uses the shared `StructureCard` to compare add-on vs diminishing; applies structure       |
 | `LoanComparisonModal` / `LoanComparisonView` | Side-by-side saved-loan comparison                                                        |
 | `SavedLoansDrawer`                           | List, load, delete saved loans                                                            |
 | `OfflineIndicator`                           | Online/offline status pill                                                                |
@@ -265,7 +277,7 @@ Responsive layout (`sm:` breakpoints, max-width 7xl container), semantic HTML st
 
 ### 7.4 Privacy
 
-No telemetry, no analytics, no network calls at runtime. All user data stays in the browser's localStorage; sync bundles are generated and consumed locally.
+No telemetry, no analytics, no runtime network calls for user data. All user data stays in the browser's localStorage; the only outbound request the app supports is the **explicit, user-triggered** FX rate fetch (public rates only, cached locally, §5.4). Backup files are generated and consumed locally.
 
 ---
 
@@ -278,27 +290,27 @@ No telemetry, no analytics, no network calls at runtime. All user data stays in 
 - **Pre-commit:** husky + lint-staged run Prettier on staged files.
 - Alias `@` → project root.
 
-### 8.1 Known Gaps / Future Work
+### 8.1 Closed Gaps (v0.1.1)
 
-1. **No unit tests** — `loanCalculations.calculateLoan` and `calculatePeriodicIRR` are pure and highly testable; recommended first target.
-2. **PWA service worker** — manifest exists; offline caching strategy (e.g., vite-plugin-pwa / Workbox) not yet wired.
-3. **Fixed add-on + extra payments** — extra-payment simulation and savings reporting are only implemented for the diminishing-balance path.
-4. **Static FX rates** — `rateAgainstUSD` values are hardcoded; a live-rates abstraction would slot behind `convertAmount`.
-5. **Cloud sync transport** — current sync is manual copy/paste; a remote backend (if added) should reuse the same `SyncPayload` shape and add `lastWriterWins` conflict resolution by `timestamp`.
-6. **Rounding/tolerance** — payment figures are computed at full float precision without banker's rounding; currency display rounds but the schedule does not.
+1. ~~No unit tests~~ — closed: `loanCalculations`, `currencies`, `storage` and component/hook tests (`LoanInputForm`, `SavedLoansDrawer`, `OfflineIndicator`, `usePWA`) run under Vitest + Testing Library.
+2. ~~PWA service worker~~ — closed: vite-plugin-pwa (Workbox) precaches the app; for data portability there are JSON backup files, no sync.
+3. ~~Fixed add-on + extra payments~~ — closed: add-on route supports extra payments with the flat-interest rebate model documented in §4.3.
+4. ~~Static FX rates~~ — closed: `utils/liveRates.ts` provides an opt-in cached live-rate fetch behind `convertAmount`, with the static table as fallback.
+5. ~~Cloud sync transport~~ — closed by removal: the client-only app has no runtime network transport of user data; portability is via local JSON backup export/import with a reviewed diff (§5.4).
+6. ~~Rounding/tolerance~~ — closed: 2-decimal schedule rounding with the residual absorbed in the final row (§4.3).
 
 ---
 
 ## 9. Traceability Summary
 
-| Design element           | Source files                                                |
-| ------------------------ | ----------------------------------------------------------- |
-| Domain & calc types      | `src/types/loan.ts`                                         |
-| Calculation engine       | `src/utils/loanCalculations.ts`                             |
-| Persistence & sync       | `src/utils/storageAndSync.ts`                               |
-| Currency domain          | `src/utils/currencies.ts`                                   |
-| Export functions         | `src/utils/exportUtils.ts`                                  |
-| Root state & composition | `src/App.tsx`                                               |
-| Presentation             | `src/components/*.tsx`, `src/index.css`                     |
-| PWA lifecycle            | `src/hooks/usePWA.ts`, `public/manifest.json`, `index.html` |
-| Build/QA config          | `vite.config.ts`, `knip.json`, `package.json`               |
+| Design element           | Source files                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| Domain & calc types      | `src/types/loan.ts`                                                           |
+| Calculation engine       | `src/utils/loanCalculations.ts`                                               |
+| Persistence & backup     | `src/utils/storage.ts`                                                        |
+| Currency domain          | `src/utils/currencies.ts`                                                     |
+| Export functions         | `src/utils/exportUtils.ts`                                                    |
+| Root state & composition | `src/App.tsx`                                                                 |
+| Presentation             | `src/components/*.tsx`, `src/index.css`                                       |
+| PWA lifecycle            | `src/hooks/usePWA.ts`, `manifest.webmanifest` (vite-plugin-pwa), `index.html` |
+| Build/QA config          | `vite.config.ts`, `knip.json`, `package.json`                                 |

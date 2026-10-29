@@ -12,7 +12,7 @@ const shared = defineViteConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['manifest.json', 'icon.svg', 'favicon.ico'],
+      includeAssets: ['icon.svg'],
       manifest: {
         id: '/',
         name: 'LoanMatrix - Advanced Amortization & Loan Calculator',
