@@ -38,11 +38,15 @@ export function getTotalPeriods(
   return Math.max(1, Math.round(years * freq));
 }
 
+/** Currency-grade rounding for display values (avoids float drift in schedules). */
+function mathRound2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 /**
  * Solve for periodic IRR using Newton-Raphson
  * Cash flow: -Principal at t=0, +Payment at t=1..N
  */
-// fallow-ignore-next-line unused-export
 export function calculatePeriodicIRR(
   principal: number,
   periodicPayment: number,
@@ -133,6 +137,7 @@ export function calculateLoan(input: LoanInput): CalculationResult {
   let effectiveInterestRate = 0;
   let nominalAnnualRate = 0;
   let monthlyAddOnRate = 0;
+  let fullFlatInterest = 0;
 
   const schedule: AmortizationRow[] = [];
 
@@ -142,6 +147,7 @@ export function calculateLoan(input: LoanInput): CalculationResult {
     monthlyAddOnRate = ratePeriod === 'monthly' ? interestRate : interestRate / 12;
     const totalFlatInterestRate = (monthlyAddOnRate / 100) * totalMonths;
     totalInterest = principal * totalFlatInterestRate;
+    fullFlatInterest = totalInterest;
     const grossTotal = principal + totalInterest;
 
     // In fixed add-on loans, total repayment is divided evenly over the periods
@@ -153,31 +159,57 @@ export function calculateLoan(input: LoanInput): CalculationResult {
     effectiveInterestRate = (Math.pow(1 + periodicIRR, frequency) - 1) * 100;
     nominalAnnualRate = periodicIRR * frequency * 100;
 
-    let balance = principal;
-    let cumPrincipal = 0;
-    let cumInterest = 0;
     const principalPerPeriod = principal / scheduledPeriods;
     const interestPerPeriod = totalInterest / scheduledPeriods;
 
+    let balance = principal;
+    let cumPrincipal = 0;
+    let cumInterest = 0;
+
     for (let p = 1; p <= scheduledPeriods; p++) {
-      const pPrincipal = Math.min(principalPerPeriod, balance);
+      let pPrincipal = principalPerPeriod + extraPaymentPerPeriod;
+      let periodInterest = interestPerPeriod;
+      let boilsDownToSettlement = false;
+
+      if (pPrincipal >= balance) {
+        // Early settlement: pay the remaining principal now; flat interest for
+        // every future period is rebated (Cash2Go-style), so only this period's
+        // share of the flat interest is charged.
+        pPrincipal = balance;
+        boilsDownToSettlement = true;
+      }
+
       balance = Math.max(0, balance - pPrincipal);
-      cumPrincipal += pPrincipal;
-      cumInterest += interestPerPeriod;
+      const aboveSchedule = Math.max(0, pPrincipal - principalPerPeriod);
+      const shownExtra = mathRound2(aboveSchedule);
+      let shownPrincipal = mathRound2(pPrincipal - aboveSchedule);
+      const shownInterest = mathRound2(periodInterest);
+      if (boilsDownToSettlement) {
+        // Final row absorbs the accumulated rounding residue so the
+        // cumulative principal lands exactly on the loan amount.
+        shownPrincipal = mathRound2(mathRound2(principal) - cumPrincipal - shownExtra);
+      }
+      cumPrincipal += shownPrincipal + shownExtra;
+      cumInterest += shownInterest;
 
       schedule.push({
         period: p,
         date: addIntervalToDate(startDate, p, paymentInterval),
-        payment: periodicPayment,
-        principal: pPrincipal,
-        interest: interestPerPeriod,
-        extraPayment: 0,
-        totalPayment: periodicPayment,
-        remainingBalance: Math.max(0, balance),
-        cumulativePrincipal: cumPrincipal,
-        cumulativeInterest: cumInterest,
+        payment: mathRound2(periodicPayment),
+        principal: shownPrincipal,
+        interest: shownInterest,
+        extraPayment: shownExtra,
+        totalPayment: mathRound2(pPrincipal + periodInterest),
+        remainingBalance: mathRound2(Math.max(0, balance)),
+        cumulativePrincipal: mathRound2(cumPrincipal),
+        cumulativeInterest: mathRound2(cumInterest),
       });
+
+      if (balance <= 0) break;
     }
+
+    totalPrincipal = cumPrincipal;
+    totalInterest = cumInterest;
   } else {
     // Diminishing Balance / Reducing Balance Loan Structure (Mortgage / Commercial)
     // Rate is always annual percentage rate (e.g. 6.5% per annum)
@@ -219,20 +251,30 @@ export function calculateLoan(input: LoanInput): CalculationResult {
 
       const totalPrincipalPaid = scheduledPrincipal + extra;
       balance = Math.max(0, balance - totalPrincipalPaid);
-      cumPrincipal += totalPrincipalPaid;
-      cumInterest += interestForPeriod;
+      const settledNow = balance <= 0.001;
+      const shownExtra = mathRound2(extra);
+      let shownPrincipal = mathRound2(scheduledPrincipal);
+      const shownInterest = mathRound2(interestForPeriod);
+      if (settledNow) {
+        // Final row absorbs the accumulated rounding residue so the
+        // cumulative principal lands exactly on the loan amount.
+        shownPrincipal = mathRound2(principal) - cumPrincipal - shownExtra;
+        shownPrincipal = mathRound2(shownPrincipal);
+      }
+      cumPrincipal += shownPrincipal + shownExtra;
+      cumInterest += shownInterest;
 
       schedule.push({
         period: p,
         date: addIntervalToDate(startDate, p, paymentInterval),
-        payment: scheduledPrincipal + interestForPeriod,
-        principal: scheduledPrincipal,
-        interest: interestForPeriod,
-        extraPayment: extra,
-        totalPayment: scheduledPrincipal + interestForPeriod + extra,
-        remainingBalance: Math.max(0, balance),
-        cumulativePrincipal: cumPrincipal,
-        cumulativeInterest: cumInterest,
+        payment: mathRound2(scheduledPrincipal + interestForPeriod),
+        principal: shownPrincipal,
+        interest: shownInterest,
+        extraPayment: shownExtra,
+        totalPayment: mathRound2(scheduledPrincipal + interestForPeriod + extra),
+        remainingBalance: mathRound2(Math.max(0, balance)),
+        cumulativePrincipal: mathRound2(cumPrincipal),
+        cumulativeInterest: mathRound2(cumInterest),
       });
 
       p++;
@@ -244,7 +286,10 @@ export function calculateLoan(input: LoanInput): CalculationResult {
 
   // Calculate baseline interest without extra payments to determine savings
   let baselineTotalInterest = totalInterest;
-  if (extraPaymentPerPeriod > 0 && structure === 'diminishing_balance') {
+  if (extraPaymentPerPeriod > 0 && structure === 'fixed_addon') {
+    // Baseline = the full pre-rebate flat interest
+    baselineTotalInterest = fullFlatInterest;
+  } else if (extraPaymentPerPeriod > 0 && structure === 'diminishing_balance') {
     const annualRate = ratePeriod === 'annual' ? interestRate : interestRate * 12;
     const periodicRate = annualRate / 100 / frequency;
     let bBalance = principal;
