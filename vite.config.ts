@@ -54,10 +54,15 @@ const shared = defineViteConfig({
   },
 });
 
+// bun run forces NODE_ENV=production, which would load the production React
+// build (no React.act) in tests. Force the test profile here.
+process.env.NODE_ENV = process.env.NODE_ENV === 'production' ? 'test' : process.env.NODE_ENV;
+
 export default defineVitestConfig({
   ...shared,
   test: {
     environment: 'happy-dom',
+    setupFiles: './src/test/setup.ts',
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
