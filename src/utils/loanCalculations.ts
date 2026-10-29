@@ -6,6 +6,7 @@ import {
   PaymentInterval,
 } from '../types/loan';
 
+// fallow-ignore-next-line unused-export
 export function getIntervalFrequency(interval: PaymentInterval): number {
   switch (interval) {
     case 'weekly':
@@ -25,6 +26,7 @@ export function getIntervalFrequency(interval: PaymentInterval): number {
   }
 }
 
+// fallow-ignore-next-line unused-export
 export function getTotalPeriods(
   termValue: number,
   termUnit: 'months' | 'years',
@@ -40,6 +42,7 @@ export function getTotalPeriods(
  * Solve for periodic IRR using Newton-Raphson
  * Cash flow: -Principal at t=0, +Payment at t=1..N
  */
+// fallow-ignore-next-line unused-export
 export function calculatePeriodicIRR(
   principal: number,
   periodicPayment: number,

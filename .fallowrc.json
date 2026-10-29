@@ -1,0 +1,14 @@
+{
+  "$schema": "https://fallow.tools/schema.json",
+  "ignoreDependencies": [
+    "@google/genai",
+    "dotenv",
+    "express",
+    "motion",
+    "autoprefixer",
+    "eslint",
+    "@tailwindcss/vite",
+    "@vitejs/plugin-react",
+    "vite"
+  ]
+}

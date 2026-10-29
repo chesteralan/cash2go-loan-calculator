@@ -10,7 +10,22 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "audit": "npm audit",
+    "knip": "knip",
+    "fallow": "fallow",
+    "fallow:audit": "fallow audit",
+    "fallow:deadcode": "fallow dead-code",
+    "prepare": "husky || true",
+    "precommit": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write"
+    ],
+    "*.{json,css,html,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -34,6 +49,10 @@
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "eslint": "^10.13.0",
+    "fallow": "^3.37.0",
+    "husky": "^9.1.7",
+    "knip": "^6.43.0",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",

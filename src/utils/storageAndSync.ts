@@ -96,6 +96,7 @@ export function getSyncID(): string {
   return id;
 }
 
+// fallow-ignore-next-line unused-type
 export interface SyncPayload {
   version: 1;
   syncId: string;
