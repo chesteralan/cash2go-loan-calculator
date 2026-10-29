@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { LoanInput, SavedLoanRecord } from './types/loan';
 import { calculateLoan, CASH2GO_PRESET } from './utils/loanCalculations';
 import {
@@ -17,15 +17,35 @@ import { Header } from './components/Header';
 import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
 import { LoanInputForm } from './components/LoanInputForm';
 import { LoanSummaryCards } from './components/LoanSummaryCards';
-import { AmortizationChart } from './components/AmortizationChart';
-import { AmortizationBreakdownDonut } from './components/AmortizationBreakdownDonut';
-import { AmortizationMatrix } from './components/AmortizationMatrix';
-import { CurrencyConverterModal } from './components/CurrencyConverterModal';
-import { LoanComparisonModal } from './components/LoanComparisonModal';
 import { LoanComparisonView } from './components/LoanComparisonView';
 import { SavedLoansDrawer } from './components/SavedLoansDrawer';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { ArrowUpDown, HelpCircle, Shield, FileCheck, Layers, ArrowRightLeft } from 'lucide-react';
+
+// Code-split heavy render paths: charts and modals load only when needed.
+const AmortizationChart = lazy(() =>
+  import('./components/AmortizationChart').then((m) => ({ default: m.AmortizationChart }))
+);
+const AmortizationBreakdownDonut = lazy(() =>
+  import('./components/AmortizationBreakdownDonut').then((m) => ({
+    default: m.AmortizationBreakdownDonut,
+  }))
+);
+const AmortizationMatrix = lazy(() =>
+  import('./components/AmortizationMatrix').then((m) => ({ default: m.AmortizationMatrix }))
+);
+const CurrencyConverterModal = lazy(() =>
+  import('./components/CurrencyConverterModal').then((m) => ({ default: m.CurrencyConverterModal }))
+);
+const LoanComparisonModal = lazy(() =>
+  import('./components/LoanComparisonModal').then((m) => ({ default: m.LoanComparisonModal }))
+);
+
+const ChartSkeleton: React.FC<{ label: string }> = ({ label }) => (
+  <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-10 text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500">
+    {label}
+  </div>
+);
 
 export default function App() {
   const [activeInput, setActiveInput] = useState<LoanInput>(getActiveLoanFromStorage);
@@ -246,15 +266,19 @@ export default function App() {
 
                 {/* Visual Charts Split */}
                 <div className="grid grid-cols-1 gap-6">
-                  <AmortizationChart result={calculationResult} />
-                  <AmortizationBreakdownDonut result={calculationResult} />
+                  <Suspense fallback={<ChartSkeleton label="Loading amortization chart…" />}>
+                    <AmortizationChart result={calculationResult} />
+                    <AmortizationBreakdownDonut result={calculationResult} />
+                  </Suspense>
                 </div>
               </div>
             </section>
 
             {/* Section 3: Comprehensive Amortization Schedule & Annual Matrix */}
             <section id="amortization-schedule-section" className="pt-2">
-              <AmortizationMatrix result={calculationResult} />
+              <Suspense fallback={<ChartSkeleton label="Loading schedule matrix…" />}>
+                <AmortizationMatrix result={calculationResult} />
+              </Suspense>
             </section>
           </>
         )}
@@ -316,31 +340,33 @@ export default function App() {
       </footer>
 
       {/* Modals & Dialogs */}
-      <CurrencyConverterModal
-        isOpen={currencyModalOpen}
-        onClose={() => setCurrencyModalOpen(false)}
-        result={calculationResult}
-        onSelectCurrency={(code) => {
-          setActiveInput((prev) => ({ ...prev, currencyCode: code }));
-          showNotification(`Active currency updated to ${code}.`);
-        }}
-      />
+      <Suspense fallback={null}>
+        <CurrencyConverterModal
+          isOpen={currencyModalOpen}
+          onClose={() => setCurrencyModalOpen(false)}
+          result={calculationResult}
+          onSelectCurrency={(code) => {
+            setActiveInput((prev) => ({ ...prev, currencyCode: code }));
+            showNotification(`Active currency updated to ${code}.`);
+          }}
+        />
 
-      <LoanComparisonModal
-        isOpen={comparisonModalOpen}
-        onClose={() => setComparisonModalOpen(false)}
-        activeInput={activeInput}
-        onApplyStructure={(struct) => {
-          setActiveInput((prev) => ({
-            ...prev,
-            structure: struct,
-            ratePeriod: struct === 'fixed_addon' ? 'monthly' : 'annual',
-          }));
-          showNotification(
-            `Switched structure to ${struct === 'fixed_addon' ? 'Fixed Add-On' : 'Diminishing Balance'}.`
-          );
-        }}
-      />
+        <LoanComparisonModal
+          isOpen={comparisonModalOpen}
+          onClose={() => setComparisonModalOpen(false)}
+          activeInput={activeInput}
+          onApplyStructure={(struct) => {
+            setActiveInput((prev) => ({
+              ...prev,
+              structure: struct,
+              ratePeriod: struct === 'fixed_addon' ? 'monthly' : 'annual',
+            }));
+            showNotification(
+              `Switched structure to ${struct === 'fixed_addon' ? 'Fixed Add-On' : 'Diminishing Balance'}.`
+            );
+          }}
+        />
+      </Suspense>
 
       <SavedLoansDrawer
         isOpen={savedLoansDrawerOpen}
