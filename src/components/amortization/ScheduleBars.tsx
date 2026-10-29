@@ -4,14 +4,14 @@ import { FileSpreadsheet, FileText, FileDown, Printer, Search } from 'lucide-rea
 import { exportToCSV, exportToExcel } from '../../utils/exportUtils';
 
 const exportButtonClass =
-  'flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750 transition-colors';
+  'flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors';
 
 export const ScheduleSearchBar: React.FC<{
   query: string;
   onChange: (q: string) => void;
   count: number;
 }> = ({ query, onChange, count }) => (
-  <div className="flex items-center justify-between px-5 py-3 bg-slate-50 dark:bg-slate-850 border-b border-slate-100 dark:border-slate-800">
+  <div className="flex items-center justify-between px-5 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
     <div className="relative w-full max-w-xs">
       <input
         type="text"

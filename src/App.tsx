@@ -18,6 +18,7 @@ import {
 } from './utils/storage';
 import { Header } from './components/Header';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
+import { CalcErrorBoundary } from './components/CalcErrorBoundary';
 import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
 import { LoanInputForm } from './components/LoanInputForm';
 import { LoanSummaryCards } from './components/LoanSummaryCards';
@@ -216,7 +217,11 @@ export default function App() {
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8 space-y-8">
         {/* Banner notification toast */}
         {notification && (
-          <div className="flex items-center gap-3 fixed top-16 right-6 z-50 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xl dark:bg-blue-600 transition-all animate-bounce">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-3 fixed bottom-4 left-1/2 -translate-x-1/2 sm:bottom-auto sm:left-auto sm:translate-x-0 sm:top-16 sm:right-6 z-50 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xl dark:bg-blue-600 transition-all animate-fade-in"
+          >
             <span>{notification.msg}</span>
             {notification.undo && (
               <button
@@ -225,7 +230,8 @@ export default function App() {
                   if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
                   setNotification(null);
                 }}
-                className="rounded-lg bg-white/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide hover:bg-white/25"
+                aria-label="Undo the last delete"
+                className="rounded-lg bg-white/15 px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide hover:bg-white/25"
               >
                 Undo
               </button>
@@ -325,16 +331,31 @@ export default function App() {
 
               {/* Right Column (7 cols): KPI Summaries & Real-Time Amortization Charts */}
               <div className="lg:col-span-7 space-y-6">
-                {/* KPI Metrics */}
-                <LoanSummaryCards result={calculationResult} />
+                <CalcErrorBoundary onReset={() => setActiveInput(CASH2GO_PRESET)}>
+                  {/* KPI Metrics */}
+                  <LoanSummaryCards result={calculationResult} />
 
-                {/* Visual Charts Split */}
-                <div className="grid grid-cols-1 gap-6">
-                  <Suspense fallback={<ChartSkeleton label="Loading amortization chart…" />}>
-                    <AmortizationChart result={calculationResult} />
-                    <AmortizationBreakdownDonut result={calculationResult} />
-                  </Suspense>
-                </div>
+                  {/* Visual Charts Split */}
+                  <div className="grid grid-cols-1 gap-6">
+                    <Suspense fallback={<ChartSkeleton label="Loading amortization chart…" />}>
+                      {calculationResult.schedule.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Enter a loan amount to build your schedule
+                          </h3>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            Principal and term are needed to compute payments, interest, and charts.
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <AmortizationChart result={calculationResult} />
+                          <AmortizationBreakdownDonut result={calculationResult} />
+                        </>
+                      )}
+                    </Suspense>
+                  </div>
+                </CalcErrorBoundary>
               </div>
             </section>
 

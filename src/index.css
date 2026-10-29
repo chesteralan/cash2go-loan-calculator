@@ -21,6 +21,26 @@
   }
 }
 
+/* Prevent iOS Safari auto-zoom: form controls need >=16px on screens below sm */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 1rem !important;
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Custom scrollbars for data tables and matrix */
 ::-webkit-scrollbar {
   width: 6px;

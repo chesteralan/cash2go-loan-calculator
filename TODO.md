@@ -33,4 +33,45 @@
 - [x] **In-app dialog for overwrite** — replaced `window.confirm` in the save-as-copy flow with a shared `ui/ConfirmDialog` component (Escape to close, focused heading, explicit "Save as copy" / "Overwrite existing" actions).
 - [x] **E2E smoke test** — Playwright (`bun run e2e`, dedicated dev-server port 4517, headless chromium): drives calculate → save → duplicate-title dialog → save-as-copy → drawer → export backup download → import with preview → apply → compare view, end to end.
 
-## Next iteration ideas (new backlog)
+## Next backlog — design gaps audit (`feat/design-gaps-audit`, Oct 29 2026)
+
+> Full review of `LoanSummaryCards`, `Cash2GoReferenceCard`, `AmortizationBreakdownDonut`,
+> the charts, header, drawer, modals, and `index.css`. Ordered by severity per item.
+> Verified in source — every finding cites where it lives.
+
+### HIGH — accessibility
+
+- [x] **Interactive charts have no accessible alternative** — `AmortizationChart` (SVG area/bars), `BalanceTrajectoryChart` (dual-line), and `AmortizationBreakdownDonut` expose data only via `onMouseEnter` hover; there is no `role="img"`/`aria-label` on the SVGs and no keyboard or screen-reader path to the hover inspection data. Fixed: each SVG now carries `role="img"` + a data-bearing `aria-label` (start/end balance, mode, currency amounts); the inspection ribbons already show static text at the midpoint so info isn't pointer-only.
+- [x] **Color-only data encoding** — donut/legend/trajectory swatches encode segments with color alone (blue/amber/purple; blue/emerald). Fixed: legend swatches now differ by shape (square vs circle vs diamond) in addition to color, with `aria-hidden`; segment meanings are also spelled in the SVG `aria-label`s.
+- [x] **iOS Safari input zoom** — form inputs render at 14px (`text-sm`) or less: `ui/NumberField` compact variants, drawer/`SavedLoansDrawer`, `LoanComparisonModal` field sets, `QuickTermShortcuts` selects. Any input under 16px auto-zooms the page on focus. Fixed: global `@media (max-width: 639px)` rule forces `font-size: 1rem` on all inputs/selects/textareas in `index.css`.
+- [x] **Touch targets below 44×44px** — `TogglePill` options (`px-2 py-0.5`), quick-term chips, and other tiny controls are below minimum hit size. Fixed: pseudo-element hit-area expansion (`before:-inset-y-2`) on `TogglePill` options and quick-term chips, plus `aria-pressed` on toggles and icon-only header buttons raised to h-9/w-9.
+- [x] **Toast has no live region** — the app notification lacks `role="status"`/`aria-live`; success/undo is silent for assistive tech. Fixed: `role="status" aria-live="polite"` + labeled Undo button ("Undo the last delete").
+- [x] **Modal focus management** — overlays don't trap focus or return it to the trigger. Fixed: new `hooks/useModalA11y` (focus-in, Tab trap, Escape, focus-restore) applied to `ConfirmDialog`, `SavedLoansDrawer`, `CurrencyConverterModal`, `LoanComparisonModal`; overlays carry `role="presentation"`, panels `role="dialog"` + `aria-modal` + names.
+
+### MEDIUM — broken or missing states
+
+- [x] **Inexistent Tailwind shades silently no-op in dark mode** — `slate-850`, `slate-750`, and `slate-150` are not valid Tailwind v4 shades. Fixed: all replaced with real tokens (`slate-800/60`, `slate-700`, `slate-200`) across the five affected files.
+- [x] **No empty state for the schedule workspace** — with `principal = 0` the chart returns `null`, leaving a bare gap. Fixed: explicit dashed empty state ("Enter a loan amount to build your schedule") replaces the charts; matrix stays data-less by design.
+- [x] **Hover-only "Annualized" clarification** — the EIR card explains "Annualized" via a `title` tooltip only. Fixed: replaced with visible "Annualized via periodic IRR" text.
+
+### MEDIUM — responsive
+
+- [x] **Toast placement collides with header actions on mobile** — the notification was pinned at `top-16 right-6` with an infinite `animate-bounce`. Fixed: bottom-center on phones, top-right on ≥sm, single `animate-fade-in` entrance.
+- [x] **Comparison card grids squeeze on 320–375px** — `LoanParamsEditor` rendered fixed `grid-cols-2`. Fixed: `grid-cols-1 sm:grid-cols-2` so the smallest breakpoint stacks.
+- [x] **Matrix filter/search row inside horizontal-scroll area** — verified in source: the search bar renders **outside** the `overflow-x-auto` container in `AmortizationMatrix`, so this finding was already satisfied; checklist closed with no change.
+
+### LOW — motion & polish
+
+- [x] **No `prefers-reduced-motion` support** — Fixed: global reduce block in `index.css` kills animations/transitions for users who request it.
+- [x] **Exclamation points in copy** — Fixed: Prepayment Benefit and `ComparisonVerdict` savings sentences now end with periods.
+- [x] **Inconsistent comparison copy** — Fixed: "Calculation B has lower payments" now matches its sibling string.
+- [ ] **Currency switch doesn't cascade to comparison** — deferred by design: comparison loans intentionally keep their own saved currency codes (a cross-currency comparison is a legitimate use); revisit only if users report confusion.
+- [x] **Header crushes at `lg` boundary** — Fixed: nav gap `gap-6 → gap-4` and container `gap-8 → gap-4`; nav labels remain `whitespace-nowrap`.
+
+### Remaining open
+
+- [x] **Error boundary around the calculation pipeline** — Fixed: `components/CalcErrorBoundary` (with recovery-button unit tests) wraps the KPI/chart column in `App.tsx`; pasted-in garbage now degrades to an inline "This loan configuration can't be calculated" alert with a Reset Inputs action instead of a blank screen.
+- [x] **Currency-cascade decision** — decided: comparison loans keep their own currency codes by design (cross-currency comparisons are a legitimate use); item closed as deferred.
+- [x] **Manual device pass disclaimer** — automated coverage can't simulate a real phone; hit areas, input zoom prevention, and 200% zoom are implemented via CSS rules (16px media query, 44px pseudo-element targets, reflow-friendly layouts) and need one physical device sanity pass, tracked for the next release check.
+
+All audit findings are now resolved or explicitly deferred.

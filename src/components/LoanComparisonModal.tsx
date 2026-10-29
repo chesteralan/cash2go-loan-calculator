@@ -4,6 +4,7 @@ import { calculateLoan } from '../utils/loanCalculations';
 import { formatCurrency } from '../utils/currencies';
 import { ArrowRightLeft, HelpCircle, X } from 'lucide-react';
 import { StructureCard } from './loan-comparison/StructureCard';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface LoanComparisonModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export const LoanComparisonModal: React.FC<LoanComparisonModalProps> = ({
   activeInput,
   onApplyStructure,
 }) => {
+  const panelRef = useModalA11y<HTMLDivElement>(isOpen ? onClose : undefined);
+
   if (!isOpen) return null;
 
   const scenarios: {
@@ -58,8 +61,18 @@ export const LoanComparisonModal: React.FC<LoanComparisonModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 sm:p-8 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all">
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Structure Comparison"
+        tabIndex={-1}
+        className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 sm:p-8 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all"
+      >
         <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <ArrowRightLeft className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -86,7 +99,7 @@ export const LoanComparisonModal: React.FC<LoanComparisonModalProps> = ({
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <StructureCard
             headerBorderClass="border-blue-100 dark:border-slate-800"
-            frameClass="border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-slate-850"
+            frameClass="border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-slate-800/60"
             eyebrow="Structure A (Cash2Go Model)"
             eyebrowClass="text-blue-700 dark:text-blue-400"
             title="Fixed Rate (Add-on Flat)"
@@ -107,7 +120,7 @@ export const LoanComparisonModal: React.FC<LoanComparisonModalProps> = ({
           />
           <StructureCard
             headerBorderClass="border-slate-100 dark:border-slate-800"
-            frameClass="border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-850"
+            frameClass="border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800/60"
             eyebrow="Structure B (Standard Mortgage)"
             eyebrowClass="text-slate-500 dark:text-slate-400"
             title="Diminishing Balance (Reducing)"
@@ -128,7 +141,7 @@ export const LoanComparisonModal: React.FC<LoanComparisonModalProps> = ({
           />
         </div>
 
-        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-850 text-xs text-slate-600 dark:text-slate-300">
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60 text-xs text-slate-600 dark:text-slate-300">
           <div className="flex items-start gap-2.5">
             <HelpCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
             <div>

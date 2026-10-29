@@ -23,7 +23,7 @@ export const QuickTermShortcuts: React.FC<QuickTermShortcutsProps> = ({
         key={m}
         type="button"
         onClick={() => onChange({ termValue: m, termUnit: 'months' })}
-        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
+        className={`relative rounded-md px-2 py-0.5 text-xs font-medium transition-colors before:absolute before:inset-x-0 before:-inset-y-2 before:content-[''] ${
           termUnit === 'months' && termValue === m
             ? 'bg-blue-600 text-white'
             : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
@@ -37,7 +37,7 @@ export const QuickTermShortcuts: React.FC<QuickTermShortcutsProps> = ({
         key={y}
         type="button"
         onClick={() => onChange({ termValue: y, termUnit: 'years' })}
-        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
+        className={`relative rounded-md px-2 py-0.5 text-xs font-medium transition-colors before:absolute before:inset-x-0 before:-inset-y-2 before:content-[''] ${
           termUnit === 'years' && termValue === y
             ? 'bg-blue-600 text-white'
             : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'

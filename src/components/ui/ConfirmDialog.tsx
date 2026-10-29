@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -20,37 +21,22 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   actions,
   onClose,
 }) => {
-  const titleRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      titleRef.current?.focus();
-      const onKey = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', onKey);
-      return () => window.removeEventListener('keydown', onKey);
-    }
-  }, [isOpen, onClose]);
+  const panelRef = useModalA11y<HTMLDivElement>(isOpen ? onClose : undefined);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
       >
         <div className="flex items-start justify-between gap-3">
-          <h3
-            ref={titleRef}
-            tabIndex={-1}
-            className="text-sm font-bold text-slate-900 dark:text-white outline-none"
-          >
-            {title}
-          </h3>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
@@ -67,7 +53,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <button
               key={a.label}
               onClick={a.onClick}
-              className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
+              className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors ${
                 a.primary
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
