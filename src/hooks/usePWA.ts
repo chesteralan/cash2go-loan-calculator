@@ -85,3 +85,26 @@ export function useOnlineStatus(): boolean {
 
   return isOnline;
 }
+
+export function useOfflineReady() {
+  const [isOfflineReady, setIsOfflineReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    const registration = (
+      navigator as Navigator & { serviceWorker?: { getRegistration: () => Promise<unknown> } }
+    ).serviceWorker;
+    if (!registration) return;
+
+    registration
+      .getRegistration()
+      .then((reg) => {
+        if (reg) setIsOfflineReady(true);
+      })
+      .catch(() => {
+        // No service worker available
+      });
+  }, []);
+
+  return isOfflineReady;
+}

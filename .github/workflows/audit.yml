@@ -40,6 +40,9 @@ jobs:
       - name: Prettier Code Format Check
         run: bun run format:check
 
+      - name: Unit Tests
+        run: bun run test
+
       - name: Knip Unused Dependencies & Dead Code Audit
         run: bunx knip
 
