@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calculator, Moon, Sun, Globe, Cloud, BookmarkCheck, Download } from 'lucide-react';
+import { Calculator, Moon, Sun, Globe, BookmarkCheck, Download } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWA';
 
 interface HeaderProps {
@@ -9,7 +9,6 @@ interface HeaderProps {
   setDarkMode: (val: boolean) => void;
   selectedCurrency: string;
   onOpenCurrencyConverter: () => void;
-  onOpenCloudSync: () => void;
   onOpenSavedLoans: () => void;
   savedLoansCount: number;
 }
@@ -21,7 +20,6 @@ export const Header: React.FC<HeaderProps> = ({
   setDarkMode,
   selectedCurrency,
   onOpenCurrencyConverter,
-  onOpenCloudSync,
   onOpenSavedLoans,
   savedLoansCount,
 }) => {
@@ -95,17 +93,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Globe className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
             <span className="font-mono">{selectedCurrency}</span>
-          </button>
-
-          {/* Cloud Sync */}
-          <button
-            onClick={onOpenCloudSync}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors whitespace-nowrap"
-            title="Cross-Device Cloud Sync"
-            aria-label="Cross-Device Cloud Sync"
-          >
-            <Cloud className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
-            <span className="hidden sm:inline">Sync</span>
           </button>
 
           {/* Saved Loans */}

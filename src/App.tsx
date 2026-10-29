@@ -1,29 +1,54 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { LoanInput, SavedLoanRecord } from './types/loan';
 import { calculateLoan, CASH2GO_PRESET } from './utils/loanCalculations';
 import {
+  applyImport,
+  buildImportPreview,
+  clearAllLoans,
+  exportLoansJson,
   getActiveLoanFromStorage,
   getSavedLoans,
   getStoredDarkMode,
+  overwriteSavedLoans,
   saveLoanToStorage,
   deleteSavedLoan,
   setActiveLoanToStorage,
   setStoredDarkMode,
-} from './utils/storageAndSync';
+  type ImportPreview,
+} from './utils/storage';
 import { Header } from './components/Header';
 import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
 import { LoanInputForm } from './components/LoanInputForm';
 import { LoanSummaryCards } from './components/LoanSummaryCards';
-import { AmortizationChart } from './components/AmortizationChart';
-import { AmortizationBreakdownDonut } from './components/AmortizationBreakdownDonut';
-import { AmortizationMatrix } from './components/AmortizationMatrix';
-import { CurrencyConverterModal } from './components/CurrencyConverterModal';
-import { CloudSyncModal } from './components/CloudSyncModal';
-import { LoanComparisonModal } from './components/LoanComparisonModal';
 import { LoanComparisonView } from './components/LoanComparisonView';
 import { SavedLoansDrawer } from './components/SavedLoansDrawer';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { ArrowUpDown, HelpCircle, Shield, FileCheck, Layers, ArrowRightLeft } from 'lucide-react';
+
+// Code-split heavy render paths: charts and modals load only when needed.
+const AmortizationChart = lazy(() =>
+  import('./components/AmortizationChart').then((m) => ({ default: m.AmortizationChart }))
+);
+const AmortizationBreakdownDonut = lazy(() =>
+  import('./components/AmortizationBreakdownDonut').then((m) => ({
+    default: m.AmortizationBreakdownDonut,
+  }))
+);
+const AmortizationMatrix = lazy(() =>
+  import('./components/AmortizationMatrix').then((m) => ({ default: m.AmortizationMatrix }))
+);
+const CurrencyConverterModal = lazy(() =>
+  import('./components/CurrencyConverterModal').then((m) => ({ default: m.CurrencyConverterModal }))
+);
+const LoanComparisonModal = lazy(() =>
+  import('./components/LoanComparisonModal').then((m) => ({ default: m.LoanComparisonModal }))
+);
+
+const ChartSkeleton: React.FC<{ label: string }> = ({ label }) => (
+  <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-10 text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500">
+    {label}
+  </div>
+);
 
 export default function App() {
   const [activeInput, setActiveInput] = useState<LoanInput>(getActiveLoanFromStorage);
@@ -33,10 +58,11 @@ export default function App() {
 
   // Modals state
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
-  const [cloudSyncModalOpen, setCloudSyncModalOpen] = useState(false);
   const [comparisonModalOpen, setComparisonModalOpen] = useState(false);
   const [savedLoansDrawerOpen, setSavedLoansDrawerOpen] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [notification, setNotification] = useState<{ msg: string; undo?: () => void } | null>(null);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize theme & storage
   useEffect(() => {
@@ -45,6 +71,15 @@ export default function App() {
 
   useEffect(() => {
     setSavedLoans(getSavedLoans());
+  }, []);
+
+  // Restore-last-session toast: the active loan was already hydrated from
+  // storage; nudge the user when it isn't the default preset.
+  useEffect(() => {
+    if (activeInput.id !== CASH2GO_PRESET.id) {
+      setNotification({ msg: 'Restored your last calculation.' });
+      notificationTimerRef.current = setTimeout(() => setNotification(null), 3000);
+    }
   }, []);
 
   // Save active loan changes to storage
@@ -57,20 +92,85 @@ export default function App() {
     return calculateLoan(activeInput);
   }, [activeInput]);
 
-  const showNotification = (msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
+  const showNotification = (msg: string, undo?: () => void) => {
+    if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+    setNotification({ msg, undo });
+    notificationTimerRef.current = setTimeout(() => setNotification(null), undo ? 6000 : 3000);
   };
 
   const handleSaveCurrentLoan = () => {
-    const updated = saveLoanToStorage(activeInput);
+    let inputToSave = activeInput;
+    // Title collision with a different id: offer overwrite vs save-as-copy.
+    const collision = savedLoans.find(
+      (l) => l.id !== activeInput.id && l.title === activeInput.title
+    );
+    if (collision) {
+      const saveAsCopy = window.confirm(
+        `A calculation named "${collision.title}" already exists.\n\nOK = Save as copy · Cancel = Overwrite the existing calculation.`
+      );
+      inputToSave = saveAsCopy
+        ? {
+            ...activeInput,
+            id: '',
+            title: `${activeInput.title || 'Untitled Loan'} (copy)`,
+          }
+        : { ...activeInput, id: collision.id };
+    }
+
+    const updated = saveLoanToStorage(inputToSave);
     setSavedLoans(updated);
-    showNotification(`Saved "${activeInput.title || 'Loan'}" to your calculations.`);
+    showNotification(`Saved "${inputToSave.title || 'Loan'}" to your calculations.`);
   };
 
   const handleDeleteSavedLoan = (id: string) => {
-    const updated = deleteSavedLoan(id);
+    const snapshot = [...savedLoans];
+    const removed = snapshot.find((l) => l.id === id);
+    setSavedLoans(deleteSavedLoan(id));
+    if (removed) {
+      showNotification(`Removed "${removed.title}".`, () => {
+        setSavedLoans(overwriteSavedLoans(snapshot));
+      });
+    }
+  };
+
+  const handleClearAllLoans = () => {
+    const snapshot = [...savedLoans];
+    const updated = clearAllLoans();
     setSavedLoans(updated);
+    showNotification('All saved loan calculations removed.', () => {
+      setSavedLoans(overwriteSavedLoans(snapshot));
+    });
+  };
+
+  const handleExportLoans = () => {
+    exportLoansJson();
+    showNotification('Backup file downloaded.');
+  };
+
+  const handleImportFile = (file: File) => {
+    file
+      .text()
+      .then((text) => {
+        const preview = buildImportPreview(text);
+        if (preview.fileLoans.length === 0) {
+          showNotification('Invalid backup file structure.');
+          return;
+        }
+        setImportPreview(preview);
+      })
+      .catch(() => showNotification('Could not read the selected file.'));
+  };
+
+  const handleApplyImport = () => {
+    if (!importPreview) return;
+    const res = applyImport(importPreview);
+    if (res.success) {
+      setSavedLoans(getSavedLoans());
+      showNotification(`Imported ${res.count} calculation(s).`);
+    } else {
+      showNotification(res.error || 'Import failed.');
+    }
+    setImportPreview(null);
   };
 
   const handleSelectSavedLoan = (loan: LoanInput) => {
@@ -109,7 +209,6 @@ export default function App() {
         setDarkMode={setDarkMode}
         selectedCurrency={activeInput.currencyCode}
         onOpenCurrencyConverter={() => setCurrencyModalOpen(true)}
-        onOpenCloudSync={() => setCloudSyncModalOpen(true)}
         onOpenSavedLoans={() => setSavedLoansDrawerOpen(true)}
         savedLoansCount={savedLoans.length}
       />
@@ -118,8 +217,20 @@ export default function App() {
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8 space-y-8">
         {/* Banner notification toast */}
         {notification && (
-          <div className="fixed top-16 right-6 z-50 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xl dark:bg-blue-600 transition-all animate-bounce">
-            {notification}
+          <div className="flex items-center gap-3 fixed top-16 right-6 z-50 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xl dark:bg-blue-600 transition-all animate-bounce">
+            <span>{notification.msg}</span>
+            {notification.undo && (
+              <button
+                onClick={() => {
+                  notification.undo?.();
+                  if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+                  setNotification(null);
+                }}
+                className="rounded-lg bg-white/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide hover:bg-white/25"
+              >
+                Undo
+              </button>
+            )}
           </div>
         )}
 
@@ -220,15 +331,19 @@ export default function App() {
 
                 {/* Visual Charts Split */}
                 <div className="grid grid-cols-1 gap-6">
-                  <AmortizationChart result={calculationResult} />
-                  <AmortizationBreakdownDonut result={calculationResult} />
+                  <Suspense fallback={<ChartSkeleton label="Loading amortization chart…" />}>
+                    <AmortizationChart result={calculationResult} />
+                    <AmortizationBreakdownDonut result={calculationResult} />
+                  </Suspense>
                 </div>
               </div>
             </section>
 
             {/* Section 3: Comprehensive Amortization Schedule & Annual Matrix */}
             <section id="amortization-schedule-section" className="pt-2">
-              <AmortizationMatrix result={calculationResult} />
+              <Suspense fallback={<ChartSkeleton label="Loading schedule matrix…" />}>
+                <AmortizationMatrix result={calculationResult} />
+              </Suspense>
             </section>
           </>
         )}
@@ -264,8 +379,7 @@ export default function App() {
               </span>
               <p className="mt-1">
                 All financial calculations are processed client-side. No loan data, credit amounts,
-                or personal numbers are ever transmitted to any third-party server without your
-                explicit sync export.
+                or personal numbers are ever transmitted to a third-party server.
               </p>
             </div>
           </div>
@@ -291,40 +405,33 @@ export default function App() {
       </footer>
 
       {/* Modals & Dialogs */}
-      <CurrencyConverterModal
-        isOpen={currencyModalOpen}
-        onClose={() => setCurrencyModalOpen(false)}
-        result={calculationResult}
-        onSelectCurrency={(code) => {
-          setActiveInput((prev) => ({ ...prev, currencyCode: code }));
-          showNotification(`Active currency updated to ${code}.`);
-        }}
-      />
+      <Suspense fallback={null}>
+        <CurrencyConverterModal
+          isOpen={currencyModalOpen}
+          onClose={() => setCurrencyModalOpen(false)}
+          result={calculationResult}
+          onSelectCurrency={(code) => {
+            setActiveInput((prev) => ({ ...prev, currencyCode: code }));
+            showNotification(`Active currency updated to ${code}.`);
+          }}
+        />
 
-      <CloudSyncModal
-        isOpen={cloudSyncModalOpen}
-        onClose={() => setCloudSyncModalOpen(false)}
-        onSyncCompleted={() => {
-          setSavedLoans(getSavedLoans());
-          showNotification('Cloud synchronization completed.');
-        }}
-      />
-
-      <LoanComparisonModal
-        isOpen={comparisonModalOpen}
-        onClose={() => setComparisonModalOpen(false)}
-        activeInput={activeInput}
-        onApplyStructure={(struct) => {
-          setActiveInput((prev) => ({
-            ...prev,
-            structure: struct,
-            ratePeriod: struct === 'fixed_addon' ? 'monthly' : 'annual',
-          }));
-          showNotification(
-            `Switched structure to ${struct === 'fixed_addon' ? 'Fixed Add-On' : 'Diminishing Balance'}.`
-          );
-        }}
-      />
+        <LoanComparisonModal
+          isOpen={comparisonModalOpen}
+          onClose={() => setComparisonModalOpen(false)}
+          activeInput={activeInput}
+          onApplyStructure={(struct) => {
+            setActiveInput((prev) => ({
+              ...prev,
+              structure: struct,
+              ratePeriod: struct === 'fixed_addon' ? 'monthly' : 'annual',
+            }));
+            showNotification(
+              `Switched structure to ${struct === 'fixed_addon' ? 'Fixed Add-On' : 'Diminishing Balance'}.`
+            );
+          }}
+        />
+      </Suspense>
 
       <SavedLoansDrawer
         isOpen={savedLoansDrawerOpen}
@@ -332,6 +439,12 @@ export default function App() {
         savedLoans={savedLoans}
         onSelectLoan={handleSelectSavedLoan}
         onDeleteLoan={handleDeleteSavedLoan}
+        onClearAllLoans={handleClearAllLoans}
+        onExportLoans={handleExportLoans}
+        onImportFile={handleImportFile}
+        importPreview={importPreview}
+        onCancelImport={() => setImportPreview(null)}
+        onApplyImport={handleApplyImport}
         activeLoanId={activeInput.id}
       />
 

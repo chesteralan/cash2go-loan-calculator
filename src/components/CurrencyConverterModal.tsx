@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SUPPORTED_CURRENCIES, convertAmount, formatCurrency } from '../utils/currencies';
+import { clearRateOverrides, getRateOverrides, refreshLiveRates } from '../utils/liveRates';
 import { CalculationResult } from '../types/loan';
 import { Globe, ArrowRightLeft, X, Check } from 'lucide-react';
 
@@ -18,12 +19,27 @@ export const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({
 }) => {
   const { input, periodicPayment, totalCost, totalPrincipal } = result;
   const [targetCode, setTargetCode] = useState('USD');
+  const [rateStatus, setRateStatus] = useState<string | null>(null);
+  const [fetchingRates, setFetchingRates] = useState(false);
+  const [ratesVersion, setRatesVersion] = useState(0); // triggers re-conversion after refresh
 
   if (!isOpen) return null;
 
   const principalConv = convertAmount(totalPrincipal, input.currencyCode, targetCode);
   const paymentConv = convertAmount(periodicPayment, input.currencyCode, targetCode);
   const totalCostConv = convertAmount(totalCost, input.currencyCode, targetCode);
+
+  const rateCache = getRateOverrides();
+
+  const handleRefreshRates = async () => {
+    setFetchingRates(true);
+    const res = await refreshLiveRates();
+    setFetchingRates(false);
+    setRateStatus(
+      res.success ? 'Live rates updated (cached locally).' : res.error || 'Fetch failed'
+    );
+    if (res.success) setRatesVersion((v) => v + 1);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
@@ -80,9 +96,56 @@ export const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({
             </div>
           </div>
 
-          <div className="rounded-lg bg-blue-50 p-2.5 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 font-mono">
+          <div
+            className="rounded-lg bg-blue-50 p-2.5 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 font-mono"
+            key={ratesVersion}
+          >
             Exchange rate: 1 {input.currencyCode} = {principalConv.exchangeRate.toFixed(4)}{' '}
             {targetCode}
+          </div>
+
+          {/* Opt-in live rates */}
+          <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                {rateCache
+                  ? `Live rates cached ${new Date(rateCache.fetchedAt).toLocaleString()}`
+                  : 'Using built-in static rates.'}
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => void handleRefreshRates()}
+                  disabled={fetchingRates}
+                  className="rounded-lg bg-blue-600 px-2.5 py-1 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  title="Fetch fresh FX rates from a public provider (one opt-in fetch, cached in local storage)"
+                >
+                  {fetchingRates ? 'Fetching…' : 'Fetch Live Rates'}
+                </button>
+                {rateCache && (
+                  <button
+                    onClick={() => {
+                      clearRateOverrides();
+                      setRateStatus(null);
+                      setRatesVersion((v) => v + 1);
+                    }}
+                    className="rounded-lg border border-slate-300 px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    title="Remove cached live rates and return to static rates"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+            {rateStatus && (
+              <span
+                className={`font-semibold ${!rateStatus.startsWith('Live') ? 'text-rose-600 dark:text-rose-400' : ''}`}
+              >
+                {rateStatus}
+              </span>
+            )}
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+              Only public exchange rates are downloaded — no loan data leaves your device.
+            </span>
           </div>
 
           {/* Converted KPI Results */}
