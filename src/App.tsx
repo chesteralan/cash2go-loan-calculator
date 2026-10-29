@@ -18,6 +18,7 @@ import {
 } from './utils/storage';
 import { Header } from './components/Header';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
+import { CalcErrorBoundary } from './components/CalcErrorBoundary';
 import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
 import { LoanInputForm } from './components/LoanInputForm';
 import { LoanSummaryCards } from './components/LoanSummaryCards';
@@ -330,29 +331,31 @@ export default function App() {
 
               {/* Right Column (7 cols): KPI Summaries & Real-Time Amortization Charts */}
               <div className="lg:col-span-7 space-y-6">
-                {/* KPI Metrics */}
-                <LoanSummaryCards result={calculationResult} />
+                <CalcErrorBoundary onReset={() => setActiveInput(CASH2GO_PRESET)}>
+                  {/* KPI Metrics */}
+                  <LoanSummaryCards result={calculationResult} />
 
-                {/* Visual Charts Split */}
-                <div className="grid grid-cols-1 gap-6">
-                  <Suspense fallback={<ChartSkeleton label="Loading amortization chart…" />}>
-                    {calculationResult.schedule.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900">
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                          Enter a loan amount to build your schedule
-                        </h3>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          Principal and term are needed to compute payments, interest, and charts.
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <AmortizationChart result={calculationResult} />
-                        <AmortizationBreakdownDonut result={calculationResult} />
-                      </>
-                    )}
-                  </Suspense>
-                </div>
+                  {/* Visual Charts Split */}
+                  <div className="grid grid-cols-1 gap-6">
+                    <Suspense fallback={<ChartSkeleton label="Loading amortization chart…" />}>
+                      {calculationResult.schedule.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Enter a loan amount to build your schedule
+                          </h3>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            Principal and term are needed to compute payments, interest, and charts.
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <AmortizationChart result={calculationResult} />
+                          <AmortizationBreakdownDonut result={calculationResult} />
+                        </>
+                      )}
+                    </Suspense>
+                  </div>
+                </CalcErrorBoundary>
               </div>
             </section>
 

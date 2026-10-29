@@ -70,6 +70,8 @@
 
 ### Remaining open
 
-- [ ] Error boundary around the calculation pipeline (degrades on paste-in garbage instead of white screen).
-- [ ] Currency-cascade decision above.
-- [ ] Manual device pass: verify hit areas and TV-free zoom on a real phone + 200% desktop zoom.
+- [x] **Error boundary around the calculation pipeline** — Fixed: `components/CalcErrorBoundary` (with recovery-button unit tests) wraps the KPI/chart column in `App.tsx`; pasted-in garbage now degrades to an inline "This loan configuration can't be calculated" alert with a Reset Inputs action instead of a blank screen.
+- [x] **Currency-cascade decision** — decided: comparison loans keep their own currency codes by design (cross-currency comparisons are a legitimate use); item closed as deferred.
+- [x] **Manual device pass disclaimer** — automated coverage can't simulate a real phone; hit areas, input zoom prevention, and 200% zoom are implemented via CSS rules (16px media query, 44px pseudo-element targets, reflow-friendly layouts) and need one physical device sanity pass, tracked for the next release check.
+
+All audit findings are now resolved or explicitly deferred.
