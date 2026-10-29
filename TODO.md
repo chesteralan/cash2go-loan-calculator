@@ -33,4 +33,37 @@
 - [x] **In-app dialog for overwrite** — replaced `window.confirm` in the save-as-copy flow with a shared `ui/ConfirmDialog` component (Escape to close, focused heading, explicit "Save as copy" / "Overwrite existing" actions).
 - [x] **E2E smoke test** — Playwright (`bun run e2e`, dedicated dev-server port 4517, headless chromium): drives calculate → save → duplicate-title dialog → save-as-copy → drawer → export backup download → import with preview → apply → compare view, end to end.
 
-## Next iteration ideas (new backlog)
+## Next backlog — design gaps audit (`feat/design-gaps-audit`, Oct 29 2026)
+
+> Full review of `LoanSummaryCards`, `Cash2GoReferenceCard`, `AmortizationBreakdownDonut`,
+> the charts, header, drawer, modals, and `index.css`. Ordered by severity per item.
+> Verified in source — every finding cites where it lives.
+
+### HIGH — accessibility
+
+- [ ] **Interactive charts have no accessible alternative** — `AmortizationChart` (SVG area/bars), `BalanceTrajectoryChart` (dual-line), and `AmortizationBreakdownDonut` expose data only via `onMouseEnter` hover; there is no `role="img"`/`aria-label` on the SVGs and no keyboard or screen-reader path to the hover inspection data. Fix: label each chart (`role="img"`, named), and add a text summary block (peak balance, payoff movement) so the info isn't pointer-only.
+- [ ] **Color-only data encoding** — donut/legend/trajectory swatches encode segments with color alone (blue/amber/purple; blue/emerald). Add a secondary differentiator (pattern/shape or direct labels on segments) for colorblind users.
+- [ ] **iOS Safari input zoom** — form inputs render at 14px (`text-sm`) or less: `ui/NumberField` compact variants, drawer/`SavedLoansDrawer`, `LoanComparisonModal` field sets, `QuickTermShortcuts` selects. Any input under 16px auto-zooms the page on focus. Fix: force `≥16px` (or `text-base`) for all form controls below 640px.
+- [ ] **Touch targets below 44×44px** — `TogglePill` options (`px-2 py-0.5`), quick-term/principal chips, the section-view toggle strip, and icon-only header buttons (~32px) are below minimum hit size. Fix: pad hit areas (pseudo-element expansion) to ≥44px without changing visual size.
+- [ ] **Toast has no live region** — the app notification (`App.tsx` fixed top-right banner, `animate-bounce`) lacks `role="status"`/`aria-live`; save/undo/undo-toast success is silent for assistive tech. The Undo button also needs `aria-label` context and shouldn't vanish scroll-triggered.
+- [ ] **Modal focus management** — `ConfirmDialog` closes on Escape but doesn't trap focus or restore it to the trigger; `SavedLoansDrawer`, `CurrencyConverterModal`, `LoanComparisonModal` don't set `inert` on the background nor return focus on close. Fix: shared focus-trap helper for all four overlays.
+
+### MEDIUM — broken or missing states
+
+- [ ] **Inexistent Tailwind shades silently no-op in dark mode** — `slate-850`, `slate-750`, and `slate-150` are not valid Tailwind v4 shades but appear in `structure selector hover`, `LoanComparisonModal` (3×), `LoanInputForm` border, `ScheduleBars` search/filter bar, `SavedLoansDrawer` list rows, and more. Dark surfaces just drop those rules (e.g. search bar background falls back to transparent). Fix: replace with real tokens (`slate-900`/`slate-800`/`slate-200`) or define aliases in `index.css`.
+- [ ] **No empty/error state for the schedule workspace** — with `principal = 0` the schedule rows are empty and the chart returns `null`, leaving a bare gap between summary and matrix with no explanation. Fix: explicit empty state ("Enter a loan amount to build your schedule") + error boundary around calculation so number-paste accidents degrade gracefully.
+- [ ] **Hover-only "Annualized" clarification** — the EIR card explains "Annualized" via a `title` tooltip only, invisible on touch/keyboard. Promote to visible helper text.
+
+### MEDIUM — responsive
+
+- [ ] **Toast placement collides with header actions on mobile** — the notification is pinned at `top-16 right-6`, overlapping the header action cluster on narrow screens; also `animate-bounce` runs continuously. Fix: bottom-centered on small screens, single gentle entrance instead of infinite bounce.
+- [ ] **Comparison card grids squeeze on 320–375px** — `ComparisonLoanCard` always renders `grid-cols-2` for its 2×2 param rows with mono values that truncate at 320px. Consider single-column on smallest breakpoint or container queries.
+- [ ] **Matrix filter/search row inside horizontal-scroll area** — `ScheduleSearchBar` sits inside the `overflow-x-auto` context, so on narrow screens the count text scrolls out of reach. Move status into the sticky header row.
+
+### LOW — motion & polish
+
+- [ ] **No `prefers-reduced-motion` support** — donut transitions (`duration-500`), charts, `animate-bounce`, and drawer transitions have no reduced-motion guard. Add a global `@media (prefers-reduced-motion: reduce)` block in `index.css`.
+- [ ] **Exclamation points in copy** — "…shortens loan term by N periods!" (Prepayment Benefit) and "…savings)!" in `ComparisonVerdict`. House copy is sentence-case/no-bang; drop them.
+- [ ] **Inconsistent comparison copy** — `ComparisonVerdict` payment line reads "'B has lower payments'" while other strings spell out "Calculation A/B". Unify.
+- [ ] **Currency switch doesn't cascade to comparison** — picking a currency in the converter changes the main calculator, but `LoanComparisonView` keeps A/B at their saved codes; harmless but confusing mid-flow. Consider propagating or noting per-card codes in the KPI labels.
+- [ ] **Header crushes at `lg` boundary** — wordmark + 4 nav items + currency pill + saved pill + theme toggle + (conditional PWA install) is tight between 1024–1100px; test and allow the PWA button to wrap or collapse into an icon.
