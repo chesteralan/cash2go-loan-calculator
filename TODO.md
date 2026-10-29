@@ -16,6 +16,12 @@
 
 ## Priority 1 — Engineering
 
+- [ ] **Component audit & abstraction pass** — scan all 12 `src/components/*.tsx` files, evaluate each for abstraction, and split big ones into small, single-purpose components (target ≤ ~150 lines each). Largest first:
+  - `LoanComparisonView.tsx` (860 lines) — extract the comparison table rows, per-loan card, and summary column into subcomponents.
+  - `LoanInputForm.tsx` (560 lines) — split into field-level subcomponents (`PrincipalField`, `TermField`, `RateField`, `ExtraPaymentField`, …) over a shared `NumberField`/`SelectField` abstraction instead of inline JSX per input.
+  - `AmortizationMatrix.tsx` (333) and `AmortizationChart.tsx` (312) — extract the schedule table head/rows and chart scaffolding.
+  - `LoanComparisonModal.tsx` (235) — reuse the same field components as `LoanInputForm`.
+  - Rule of thumb: duplicated JSX appearing ≥ 2 places → hoist to a shared component; repeated Tailwind class strings → tiny wrapper or utility helper.
 - [ ] **Bundle code-splitting** — main JS chunk is ~787 kB minified (~236 kB gzip). Lazy-load heavy paths with dynamic `import()`: `jspdf` + `jspdf-autotable` + html2canvas (PDF export only), chart/modal components behind `React.lazy`.
 - [ ] **Component tests** — extend the existing Vitest setup (happy-dom already installed) with `@testing-library/react`; first targets: `LoanInputForm`, `OfflineIndicator`, `SavedLoansDrawer`, `usePWA` hooks.
 - [ ] **Dev-dep hygiene** — knip hints leave `.css` excluded and `@types/*` removed; verify `autoprefixer`/`esbuild` roles + ESLint has no config in-tree (drop if unused). Also commit-clean `.fallow` cache bins (consider `.gitignore`).
