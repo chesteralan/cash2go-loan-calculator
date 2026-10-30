@@ -208,8 +208,8 @@ export function calculateLoan(input: LoanInput): CalculationResult {
       if (balance <= 0) break;
     }
 
-    totalPrincipal = cumPrincipal;
-    totalInterest = cumInterest;
+    totalPrincipal = balance <= 0.001 ? mathRound2(principal) : mathRound2(cumPrincipal);
+    totalInterest = mathRound2(cumInterest);
   } else {
     // Diminishing Balance / Reducing Balance Loan Structure (Mortgage / Commercial)
     // Rate is always annual percentage rate (e.g. 6.5% per annum)
@@ -280,8 +280,8 @@ export function calculateLoan(input: LoanInput): CalculationResult {
       p++;
     }
 
-    totalInterest = cumInterest;
-    totalPrincipal = cumPrincipal;
+    totalInterest = mathRound2(cumInterest);
+    totalPrincipal = balance <= 0.001 ? mathRound2(principal) : mathRound2(cumPrincipal);
   }
 
   // Calculate baseline interest without extra payments to determine savings
