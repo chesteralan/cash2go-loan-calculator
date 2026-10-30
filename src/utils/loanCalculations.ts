@@ -142,7 +142,7 @@ export function calculateLoan(input: LoanInput): CalculationResult {
   const schedule: AmortizationRow[] = [];
 
   if (structure === 'fixed_addon') {
-    // Fixed Add-On Rate structure (e.g., Cash2Go / Personal Installment Loans)
+    // Fixed Add-On Rate structure (e.g., Personal Installment Loans)
     // Rate is entered either as monthly add-on (e.g. 1.00%) or annual flat rate
     monthlyAddOnRate = ratePeriod === 'monthly' ? interestRate : interestRate / 12;
     const totalFlatInterestRate = (monthlyAddOnRate / 100) * totalMonths;
@@ -173,7 +173,7 @@ export function calculateLoan(input: LoanInput): CalculationResult {
 
       if (pPrincipal >= balance) {
         // Early settlement: pay the remaining principal now; flat interest for
-        // every future period is rebated (Cash2Go-style), so only this period's
+        // every future period is rebated (fixed add-on-style), so only this period's
         // share of the flat interest is charged.
         pPrincipal = balance;
         boilsDownToSettlement = true;
@@ -365,9 +365,9 @@ export function calculateLoan(input: LoanInput): CalculationResult {
   };
 }
 
-export const CASH2GO_PRESET: LoanInput = {
-  id: 'cash2go-preset',
-  title: 'Metrobank Cash2Go Installment',
+export const FIXED_ADDON_PRESET: LoanInput = {
+  id: 'fixed-addon-preset',
+  title: 'Fixed Add-On Installment',
   principal: 300000,
   interestRate: 1.0,
   ratePeriod: 'monthly',

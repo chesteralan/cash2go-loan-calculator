@@ -4,9 +4,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SavedLoansDrawer } from './SavedLoansDrawer';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
-import { CASH2GO_PRESET } from '../utils/loanCalculations';
+import { FIXED_ADDON_PRESET } from '../utils/loanCalculations';
 
-const sampleInput: LoanInput = { ...CASH2GO_PRESET, id: 'sample-1', title: 'Sample Loan' };
+const sampleInput: LoanInput = { ...FIXED_ADDON_PRESET, id: 'sample-1', title: 'Sample Loan' };
 
 const records: SavedLoanRecord[] = [
   { id: 'sample-1', title: 'Sample Loan', timestamp: Date.now(), input: sampleInput },

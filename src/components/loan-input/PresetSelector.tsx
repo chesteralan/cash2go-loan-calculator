@@ -1,16 +1,16 @@
 import React from 'react';
 import {
-  CASH2GO_PRESET,
+  FIXED_ADDON_PRESET,
   STANDARD_MORTGAGE_PRESET,
   US_MORTGAGE_PRESET,
 } from '../../utils/loanCalculations';
 
 interface PresetSelectorProps {
-  onSelect: (preset: typeof CASH2GO_PRESET) => void;
+  onSelect: (preset: typeof FIXED_ADDON_PRESET) => void;
 }
 
 const presets = [
-  { preset: CASH2GO_PRESET, label: 'Cash2Go (₱300k)', activeClass: true },
+  { preset: FIXED_ADDON_PRESET, label: 'Fixed Add-On (₱300k)', activeClass: true },
   { preset: STANDARD_MORTGAGE_PRESET, label: 'PH Mortgage (₱5M)', activeClass: false },
   { preset: US_MORTGAGE_PRESET, label: 'US Mortgage ($400k)', activeClass: false },
 ];

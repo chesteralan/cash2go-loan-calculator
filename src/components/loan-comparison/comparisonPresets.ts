@@ -1,5 +1,5 @@
 import { LoanInput } from '../../types/loan';
-import { CASH2GO_PRESET, STANDARD_MORTGAGE_PRESET } from '../../utils/loanCalculations';
+import { FIXED_ADDON_PRESET, STANDARD_MORTGAGE_PRESET } from '../../utils/loanCalculations';
 
 export interface ComparisonPreset {
   key: string;
@@ -28,12 +28,12 @@ export function currencyCounterpart(selectedA: LoanInput): LoanInput {
 
 export const comparisonPresets: ComparisonPreset[] = [
   {
-    key: 'cash2go_vs_diminishing',
-    label: 'Cash2Go vs Diminishing',
+    key: 'fixed_addon_vs_diminishing',
+    label: 'Fixed Add-On vs Diminishing',
     build: (idSeed) => [
-      { ...CASH2GO_PRESET, title: 'Cash2Go 60m (1% Add-On)' },
+      { ...FIXED_ADDON_PRESET, title: 'Fixed Add-On 60m (1% Add-On)' },
       {
-        ...CASH2GO_PRESET,
+        ...FIXED_ADDON_PRESET,
         id: `loan-b-${idSeed}`,
         title: 'Standard Bank Loan (12% APR Diminishing)',
         structure: 'diminishing_balance',

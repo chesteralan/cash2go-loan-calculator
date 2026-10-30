@@ -16,7 +16,7 @@ const options: {
   {
     value: 'fixed_addon',
     title: 'Fixed Rate (Add-on Flat)',
-    tag: 'Cash2Go Style',
+    tag: 'Fixed Add-On Style',
     tagClass: 'text-blue-600 dark:text-blue-400',
     description:
       'Interest calculated on initial principal each month. Common for personal and auto installment loans.',

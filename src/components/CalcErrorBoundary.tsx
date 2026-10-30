@@ -36,7 +36,7 @@ export class CalcErrorBoundary extends React.Component<
           </h3>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
             Some parameter combination caused an unexpected error. Resetting the inputs back to the
-            Cash2Go presets is the quickest way to recover.
+            fixed add-on presets is the quickest way to recover.
           </p>
           <button
             onClick={this.props.onReset}

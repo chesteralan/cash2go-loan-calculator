@@ -62,7 +62,7 @@ export const LoanComparisonView: React.FC<LoanComparisonViewProps> = ({
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => applyPresetPair('cash2go_vs_diminishing')}
+              onClick={() => applyPresetPair('fixed_addon_vs_diminishing')}
               className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60 transition-colors"
             >
               {comparisonPresets[0].label}

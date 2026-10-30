@@ -21,7 +21,7 @@
 - [x] **Delete undo toast** — delete/clear-all notifications offer a 6-second **Undo** button backed by an exact-list restore (`overwriteSavedLoans`).
 - [x] **Duplicate-on-save prompt** — saving under an existing title offers **Save as copy** (`<title> (copy)`) vs **Overwrite**.
 - [x] **Storage usage indicator** — drawer footer shows used bytes for the loan keys with a progress bar and a warn-near-quota hint.
-- [x] **Restore-last-session toast** — on mount, if the active loan isn't the Cash2Go preset, show "Restored your last calculation."
+- [x] **Restore-last-session toast** — on mount, if the active loan isn't the fixed add-on preset, show "Restored your last calculation."
 - [x] **Live FX rates (opt-in, client-side fetch)** — `utils/liveRates.ts` fetches public USD rates only on user action (open.er-api.com, no key), caches to `loanmatrix_fx_rates_v1`; `convertAmount` uses cached overrides with static-table fallback; Reset button reverts.
 - [x] **PDF export via local generation only** — confirmed: PDF pieces live in `pdfExport.ts` (lazy chunk), fully client-side; no external service.
 - [x] **SDD refresh** — `docs/SDD.md` updated: §8.1 marked closed, §4.3 documents the add-on extra-payment rebate model and the 2-decimal rounding discipline (final row absorbs residue), §5.4 rewritten as the client-only backup design, architecture/traceability tables reflect the new module layout.
@@ -35,7 +35,7 @@
 
 ## Next backlog — design gaps audit (`feat/design-gaps-audit`, Oct 29 2026)
 
-> Full review of `LoanSummaryCards`, `Cash2GoReferenceCard`, `AmortizationBreakdownDonut`,
+> Full review of `LoanSummaryCards`, `FixedAddonReferenceCard`, `AmortizationBreakdownDonut`,
 > the charts, header, drawer, modals, and `index.css`. Ordered by severity per item.
 > Verified in source — every finding cites where it lives.
 

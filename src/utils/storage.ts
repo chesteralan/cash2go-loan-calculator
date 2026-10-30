@@ -1,5 +1,5 @@
 import { LoanInput, SavedLoanRecord } from '../types/loan';
-import { CASH2GO_PRESET, STANDARD_MORTGAGE_PRESET } from './loanCalculations';
+import { FIXED_ADDON_PRESET, STANDARD_MORTGAGE_PRESET } from './loanCalculations';
 
 const SAVED_LOANS_KEY = 'loanmatrix_saved_loans_v1';
 const CURRENT_LOAN_KEY = 'loanmatrix_active_loan_v1';
@@ -9,13 +9,13 @@ export function getSavedLoans(): SavedLoanRecord[] {
   try {
     const raw = localStorage.getItem(SAVED_LOANS_KEY);
     if (!raw) {
-      // Seed with initial sample presets so user immediately has Cash2Go and standard mortgage
+      // Seed with initial sample presets so user immediately has fixed add-on and standard mortgage
       const initial: SavedLoanRecord[] = [
         {
-          id: CASH2GO_PRESET.id,
-          title: CASH2GO_PRESET.title,
+          id: FIXED_ADDON_PRESET.id,
+          title: FIXED_ADDON_PRESET.title,
           timestamp: Date.now() - 1000 * 60 * 60,
-          input: CASH2GO_PRESET,
+          input: FIXED_ADDON_PRESET,
         },
         {
           id: STANDARD_MORTGAGE_PRESET.id,
@@ -87,7 +87,7 @@ export function getActiveLoanFromStorage(): LoanInput {
   } catch {
     // fallback
   }
-  return CASH2GO_PRESET;
+  return FIXED_ADDON_PRESET;
 }
 
 export function setActiveLoanToStorage(input: LoanInput): void {

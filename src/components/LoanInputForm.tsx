@@ -74,7 +74,7 @@ export const LoanInputForm: React.FC<LoanInputFormProps> = ({
             type="text"
             value={input.title}
             onChange={(e) => update({ title: e.target.value })}
-            placeholder="e.g., Metrobank Cash2Go Personal Loan"
+            placeholder="e.g., Personal Loan"
             className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           />
         </div>

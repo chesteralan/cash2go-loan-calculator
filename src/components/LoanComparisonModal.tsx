@@ -100,7 +100,7 @@ export const LoanComparisonModal: React.FC<LoanComparisonModalProps> = ({
           <StructureCard
             headerBorderClass="border-blue-100 dark:border-slate-800"
             frameClass="border-blue-200 bg-blue-50/30 dark:border-blue-900/60 dark:bg-slate-800/60"
-            eyebrow="Structure A (Cash2Go Model)"
+            eyebrow="Structure A (Fixed Add-On Model)"
             eyebrowClass="text-blue-700 dark:text-blue-400"
             title="Fixed Rate (Add-on Flat)"
             tag="Flat Int."
@@ -151,8 +151,8 @@ export const LoanComparisonModal: React.FC<LoanComparisonModalProps> = ({
               <p className="mt-1">
                 <strong>Fixed Add-On (Flat Rate)</strong> offers simple, predictable installments
                 commonly found in consumer electronics, salary advances, and personal cash
-                installment products (like Cash2Go). However, because you pay interest on the
-                original loan amount even after paying down half the principal, the Effective
+                installment products (like fixed add-on loans). However, because you pay interest on
+                the original loan amount even after paying down half the principal, the Effective
                 Interest Rate (EIR) is roughly double the stated nominal rate.
               </p>
               <p className="mt-1">

@@ -37,7 +37,7 @@ export const LoanParamsEditor: React.FC<{
         }
         className={compactClass}
       >
-        <option value="fixed_addon">Fixed Rate (Add-on Flat, Cash2Go)</option>
+        <option value="fixed_addon">Fixed Rate (Add-on Flat)</option>
         <option value="diminishing_balance">Diminishing Balance (Mortgage Standard)</option>
       </select>
     </div>
