@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'border-transparent hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            Cash2Go Benchmark
+            Fixed Add-On Benchmark
           </button>
           <button
             onClick={() => setActiveTab('comparison')}

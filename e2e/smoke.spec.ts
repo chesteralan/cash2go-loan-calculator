@@ -7,7 +7,7 @@ test('full smoke: calculate, save, export, import, compare', async ({ page }) =>
   // Shell renders
   await expect(page.getByRole('banner').getByText('LoanMatrix')).toBeVisible();
 
-  // Calculator computes from the seeded Cash2Go preset
+  // Calculator computes from the seeded fixed add-on preset
   await expect(page.getByText('Loan Parameters & Structure')).toBeVisible();
   await expect(page.getByText('Total Amount to be Paid Back', { exact: true })).toBeVisible();
 
@@ -16,7 +16,7 @@ test('full smoke: calculate, save, export, import, compare', async ({ page }) =>
   const savedButton = page.getByRole('button', { name: /Saved Loan Calculations:/i });
   await expect(savedButton).toContainText(/\d+/);
 
-  // Trigger the duplicate-title dialog: save Cash2Go under a new title, then
+  // Trigger the duplicate-title dialog: save fixed add-on preset under a new title, then
   // apply the PH Mortgage preset and rename it to the same title (different id).
   const titleInput = page.getByLabel(/Loan Title \/ Description/i);
   await titleInput.fill('Smoke Test Loan');

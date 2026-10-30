@@ -4,9 +4,9 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LoanInputForm } from './LoanInputForm';
 import { LoanInput } from '../types/loan';
-import { CASH2GO_PRESET } from '../utils/loanCalculations';
+import { FIXED_ADDON_PRESET } from '../utils/loanCalculations';
 
-const baseInput: LoanInput = { ...CASH2GO_PRESET };
+const baseInput: LoanInput = { ...FIXED_ADDON_PRESET };
 
 const setup = (overrides: Partial<LoanInput> = {}) => {
   const onChange = vi.fn();

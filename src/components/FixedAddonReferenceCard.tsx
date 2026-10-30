@@ -1,14 +1,14 @@
 import React from 'react';
 import { CheckCircle2, ArrowRight, HelpCircle, Layers, Info } from 'lucide-react';
 import { LoanInput } from '../types/loan';
-import { CASH2GO_PRESET } from '../utils/loanCalculations';
+import { FIXED_ADDON_PRESET } from '../utils/loanCalculations';
 
-interface Cash2GoReferenceCardProps {
+interface FixedAddonReferenceCardProps {
   onApplyPreset: (preset: LoanInput) => void;
   isActive: boolean;
 }
 
-export const Cash2GoReferenceCard: React.FC<Cash2GoReferenceCardProps> = ({
+export const FixedAddonReferenceCard: React.FC<FixedAddonReferenceCardProps> = ({
   onApplyPreset,
   isActive,
 }) => {
@@ -20,25 +20,24 @@ export const Cash2GoReferenceCard: React.FC<Cash2GoReferenceCardProps> = ({
             <Layers className="h-4 w-4" />
             <span>Bank Installment Benchmark</span>
             <span className="text-slate-400">·</span>
-            <span>Cash2Go Reference Model</span>
+            <span>Fixed Add-On Reference Model</span>
           </div>
           <h2 className="mt-1 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-            Official Cash2Go Sample Calculation Reference
+            Official Fixed Add-On Sample Calculation Reference
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-            Standard installment benchmark based on Metrobank Cash2Go phone-in installment
-            guidelines.
+            Standard installment benchmark based on phone-in installment guidelines.
           </p>
         </div>
 
         <button
-          onClick={() => onApplyPreset(CASH2GO_PRESET)}
+          onClick={() => onApplyPreset(FIXED_ADDON_PRESET)}
           className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all shadow-sm ${
             isActive
               ? 'bg-emerald-600 text-white hover:bg-emerald-700'
               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'
           }`}
-          aria-label="Load Cash2Go sample values into the active calculator"
+          aria-label="Load fixed add-on sample values into the active calculator"
         >
           {isActive ? (
             <>
@@ -47,7 +46,7 @@ export const Cash2GoReferenceCard: React.FC<Cash2GoReferenceCardProps> = ({
             </>
           ) : (
             <>
-              <span>Load Cash2Go Benchmark</span>
+              <span>Load Fixed Add-On Benchmark</span>
               <ArrowRight className="h-4 w-4" />
             </>
           )}

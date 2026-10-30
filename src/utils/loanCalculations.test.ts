@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateLoan,
   calculatePeriodicIRR,
-  CASH2GO_PRESET,
+  FIXED_ADDON_PRESET,
   getIntervalFrequency,
   getTotalPeriods,
   STANDARD_MORTGAGE_PRESET,
@@ -256,8 +256,8 @@ describe('calculateLoan — diminishing balance', () => {
 });
 
 describe('presets', () => {
-  it('Cash2Go preset produces a valid amortization', () => {
-    const result = calculateLoan(CASH2GO_PRESET);
+  it('fixed add-on preset produces a valid amortization', () => {
+    const result = calculateLoan(FIXED_ADDON_PRESET);
     expect(result.totalPaymentPeriods).toBe(60);
     expect(result.totalInterest).toBeCloseTo(300000 * 0.01 * 60, 6); // 1% monthly add-on over 60 months
     const reciprocalsConsistent = result.schedule.every((row) => row.payment > 0);

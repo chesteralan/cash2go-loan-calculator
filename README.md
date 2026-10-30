@@ -1,14 +1,14 @@
 # LoanMatrix
 
-A client-side PWA loan and mortgage amortization calculator built around the Metrobank Cash2Go personal loan (fixed add-on rate structure) plus generic diminishing-balance loans.
+A client-side PWA loan and mortgage amortization calculator built around fixed add-on personal loans (fixed add-on rate structure) plus generic diminishing-balance loans.
 
 ## Features
 
 - **Loan input**: principal, rate & rate period, structure (fixed add-on / diminishing balance), term, payment interval (weekly → annually), start date, one-time fees, currency
 - **Amortization engine**: schedule, annual matrix, add-on fees, effective interest rate (Newton–Raphson periodic IRR)
-- **Extra payment simulation**: interest savings + periods saved, with Cash2Go-style flat-interest rebate on add-on loans
+- **Extra payment simulation**: interest savings + periods saved, with fixed add-on-style flat-interest rebate on add-on loans
 - **Charts & breakdowns**: amortization chart, composition donut, schedule matrix
-- **Saved loans**: localStorage CRUD, seeded presets (Cash2Go, standard mortgage)
+- **Saved loans**: localStorage CRUD, seeded presets (fixed add-on, standard mortgage)
 - **Loan comparison** view
 - **Multi-currency**: 12-currency table + converter (static rates)
 - **Exports**: PDF via jsPDF/autotable

@@ -16,7 +16,7 @@ import {
   setStoredDarkMode,
 } from './storage';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
-import { CASH2GO_PRESET } from './loanCalculations';
+import { FIXED_ADDON_PRESET } from './loanCalculations';
 
 const sampleLoan: LoanInput = {
   id: 'sample-1',
@@ -44,7 +44,7 @@ describe('saved loans CRUD', () => {
   it('seeds presets on first read', () => {
     const loans = getSavedLoans();
     expect(loans.length).toBe(2);
-    expect(loans.map((l) => l.id)).toContain('cash2go-preset');
+    expect(loans.map((l) => l.id)).toContain('fixed-addon-preset');
     expect(getSavedLoans()).toEqual(loans);
   });
 
@@ -81,15 +81,15 @@ describe('saved loans CRUD', () => {
     saveLoanToStorage(sampleLoan);
     const after = clearAllLoans();
     expect(after.map((l) => l.id)).toEqual(
-      expect.arrayContaining(['cash2go-preset', 'standard-mortgage-preset'])
+      expect.arrayContaining(['fixed-addon-preset', 'standard-mortgage-preset'])
     );
     expect(after.find((l) => l.id === 'sample-1')).toBeUndefined();
   });
 });
 
 describe('active loan', () => {
-  it('falls back to Cash2Go preset when nothing stored', () => {
-    expect(getActiveLoanFromStorage().id).toBe(CASH2GO_PRESET.id);
+  it('falls back to fixed add-on preset when nothing stored', () => {
+    expect(getActiveLoanFromStorage().id).toBe(FIXED_ADDON_PRESET.id);
   });
 
   it('stores and retrieves the active loan', () => {
@@ -99,7 +99,7 @@ describe('active loan', () => {
 
   it('falls back on corrupt stored data', () => {
     localStorage.setItem('loanmatrix_active_loan_v1', '{not json');
-    expect(getActiveLoanFromStorage().id).toBe(CASH2GO_PRESET.id);
+    expect(getActiveLoanFromStorage().id).toBe(FIXED_ADDON_PRESET.id);
   });
 });
 
@@ -132,7 +132,7 @@ describe('JSON export/import', () => {
       getSavedLoans()
         .map((l) => l.id)
         .sort()
-    ).toEqual(['cash2go-preset', 'other-1', 'sample-1', 'standard-mortgage-preset']);
+    ).toEqual(['fixed-addon-preset', 'other-1', 'sample-1', 'standard-mortgage-preset']);
   });
 
   it('previews show updated vs unchanged by id comparison', () => {

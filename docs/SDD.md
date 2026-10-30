@@ -18,7 +18,7 @@ This document describes the software design of LoanMatrix, a client-side loan an
 
 LoanMatrix is a single-page web application (no backend at runtime) built with React 19 + TypeScript + Vite, targeting:
 
-- **Fixed Add-On loans** (flat-rate installment loans, e.g., Metrobank Cash2Go personal loans) — rate entered as a monthly add-on rate.
+- **Fixed Add-On loans** (flat-rate installment loans, e.g., personal installment loans) — rate entered as a monthly add-on rate.
 - **Diminishing (Reducing) Balance loans** (mortgages, commercial loans) — rate entered as an annual APR.
 - Six payment intervals (weekly → annually), extra-payment simulation, one-time fees, multi-currency support (with optional opt-in live FX rates), PDF/Excel export, saved-loan management, offline PWA operation, and fully local JSON backup file export/import. **The app ships zero network transport of user data.**
 
@@ -35,9 +35,9 @@ LoanMatrix is a single-page web application (no backend at runtime) built with R
 
 ### 1.4 References
 
-- Metrobank Cash2Go installment loan mechanics (fixed add-on reference product)
+- Fixed add-on installment loan mechanics (fixed add-on reference product)
 - Central-bank disclosure rule: annualized EIR from periodic IRR
-- Presets: `CASH2GO_PRESET` (₱300k, 1.00%/mo add-on, 60 mo), `STANDARD_MORTGAGE_PRESET` (₱5M, 6.75% p.a., 30 yr), `US_MORTGAGE_PRESET` ($400k USD, 30 yr)
+- Presets: `FIXED_ADDON_PRESET` (₱300k, 1.00%/mo add-on, 60 mo), `STANDARD_MORTGAGE_PRESET` (₱5M, 6.75% p.a., 30 yr), `US_MORTGAGE_PRESET` ($400k USD, 30 yr)
 
 ---
 
@@ -58,7 +58,7 @@ Single-tier client application. All computation, persistence, and rendering happ
 │    ├─► components/   Header, LoanInputForm, LoanSummaryCards,│
 │    │                 AmortizationChart,                      │
 │    │                 AmortizationBreakdownDonut,             │
-│    │                 AmortizationMatrix, Cash2GoReferenceCard│
+│    │                 AmortizationMatrix, FixedAddonReferenceCard│
 │    │                 modals: CurrencyConverter,              │
 │    │                 LoanComparison, SavedLoansDrawer,       │
 │    │                 OfflineIndicator                        │
@@ -119,7 +119,7 @@ Single-tier client application. All computation, persistence, and rendering happ
 | FR-13 | Local JSON backup export/import with reviewed diff preview (+ deleted/clear-all undo)                                                              | `storage.ts`, `SavedLoansDrawer`, `App.tsx`                            |
 | FR-14 | Offline PWA: generated manifest, install prompt, offline indicator                                                                                 | `manifest.webmanifest` (vite-plugin-pwa), `usePWA`, `OfflineIndicator` |
 | FR-15 | Dark mode toggle, persisted                                                                                                                        | `Header`, `DARK_MODE_KEY`                                              |
-| FR-16 | Cash2Go benchmark reference card with auto-detection of the preset configuration                                                                   | `Cash2GoReferenceCard`, `isCash2GoActive`                              |
+| FR-16 | Fixed add-on benchmark reference card with auto-detection of the preset configuration                                                              | `FixedAddonReferenceCard`, `isFixedAddonPresetActive`                  |
 
 ---
 
@@ -194,12 +194,12 @@ Rows are bucketed by payment count: `frequency` rows per bucket (handles the fin
 
 ### 5.2 localStorage Keys
 
-| Key                         | Type                               | Contents                                                                      |
-| --------------------------- | ---------------------------------- | ----------------------------------------------------------------------------- |
-| `loanmatrix_saved_loans_v1` | `SavedLoanRecord[]`                | All saved loans, seeded with Cash2Go + standard mortgage presets on first run |
-| `loanmatrix_active_loan_v1` | `LoanInput`                        | Currently loaded loan                                                         |
-| `loanmatrix_theme_dark`     | `boolean`                          | Dark-mode preference                                                          |
-| `loanmatrix_fx_rates_v1`    | `{ base:'USD', fetchedAt, rates }` | Optional cached live FX rates from the opt-in fetch                           |
+| Key                         | Type                               | Contents                                                                           |
+| --------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------- |
+| `loanmatrix_saved_loans_v1` | `SavedLoanRecord[]`                | All saved loans, seeded with fixed add-on + standard mortgage presets on first run |
+| `loanmatrix_active_loan_v1` | `LoanInput`                        | Currently loaded loan                                                              |
+| `loanmatrix_theme_dark`     | `boolean`                          | Dark-mode preference                                                               |
+| `loanmatrix_fx_rates_v1`    | `{ base:'USD', fetchedAt, rates }` | Optional cached live FX rates from the opt-in fetch                                |
 
 ### 5.3 Save/Upsert Semantics
 
@@ -232,7 +232,7 @@ Derived: `calculationResult = useMemo(() => calculateLoan(activeInput), [activeI
 
 Handler contract: save/delete/select saved loans, apply presets, open modals.
 
-Cash2Go detection (`isCash2GoActive`) is a value-equality check on structure/principal/term/rate, used to highlight the benchmark card.
+Fixed add-on detection (`isFixedAddonPresetActive`) is a value-equality check on structure/principal/term/rate, used to highlight the benchmark card.
 
 ### 6.2 Component Inventory
 
@@ -244,7 +244,7 @@ Cash2Go detection (`isCash2GoActive`) is a value-equality check on structure/pri
 | `AmortizationChart`                          | Balance-over-time line chart                                                              |
 | `AmortizationBreakdownDonut`                 | Principal-vs-interest-vs-fees donut                                                       |
 | `AmortizationMatrix`                         | Annual (year-grouped) schedule table                                                      |
-| `Cash2GoReferenceCard`                       | Benchmark comparison against the Cash2Go reference deal                                   |
+| `FixedAddonReferenceCard`                    | Benchmark comparison against the fixed add-on reference deal                              |
 | `CurrencyConverterModal`                     | Cross-currency conversion panel                                                           |
 | `LoanComparisonModal`                        | Uses the shared `StructureCard` to compare add-on vs diminishing; applies structure       |
 | `LoanComparisonModal` / `LoanComparisonView` | Side-by-side saved-loan comparison                                                        |

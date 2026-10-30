@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { LoanInput, SavedLoanRecord } from './types/loan';
-import { calculateLoan, CASH2GO_PRESET } from './utils/loanCalculations';
+import { calculateLoan, FIXED_ADDON_PRESET } from './utils/loanCalculations';
 import {
   applyImport,
   buildImportPreview,
@@ -19,7 +19,7 @@ import {
 import { Header } from './components/Header';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { CalcErrorBoundary } from './components/CalcErrorBoundary';
-import { Cash2GoReferenceCard } from './components/Cash2GoReferenceCard';
+import { FixedAddonReferenceCard } from './components/FixedAddonReferenceCard';
 import { LoanInputForm } from './components/LoanInputForm';
 import { LoanSummaryCards } from './components/LoanSummaryCards';
 import { LoanComparisonView } from './components/LoanComparisonView';
@@ -78,7 +78,7 @@ export default function App() {
   // Restore-last-session toast: the active loan was already hydrated from
   // storage; nudge the user when it isn't the default preset.
   useEffect(() => {
-    if (activeInput.id !== CASH2GO_PRESET.id) {
+    if (activeInput.id !== FIXED_ADDON_PRESET.id) {
       setNotification({ msg: 'Restored your last calculation.' });
       notificationTimerRef.current = setTimeout(() => setNotification(null), 3000);
     }
@@ -183,7 +183,7 @@ export default function App() {
     showNotification(`Loaded "${preset.title}".`);
   };
 
-  const isCash2GoActive =
+  const isFixedAddonPresetActive =
     activeInput.structure === 'fixed_addon' &&
     activeInput.principal === 300000 &&
     activeInput.termValue === 60 &&
@@ -201,7 +201,7 @@ export default function App() {
             const el = document.getElementById('amortization-schedule-section');
             el?.scrollIntoView({ behavior: 'smooth' });
           } else if (tab === 'benchmark') {
-            const el = document.getElementById('cash2go-benchmark-section');
+            const el = document.getElementById('fixed-addon-benchmark-section');
             el?.scrollIntoView({ behavior: 'smooth' });
           }
         }}
@@ -295,9 +295,12 @@ export default function App() {
         ) : (
           /* SINGLE LOAN CALCULATOR VIEW */
           <>
-            {/* Section 1: Cash2Go Benchmark Card (Reference to user's uploaded sample) */}
-            <section id="cash2go-benchmark-section" aria-labelledby="benchmark-heading">
-              <Cash2GoReferenceCard onApplyPreset={handleApplyPreset} isActive={isCash2GoActive} />
+            {/* Section 1: Fixed Add-On Benchmark Card (Reference to user's uploaded sample) */}
+            <section id="fixed-addon-benchmark-section" aria-labelledby="benchmark-heading">
+              <FixedAddonReferenceCard
+                onApplyPreset={handleApplyPreset}
+                isActive={isFixedAddonPresetActive}
+              />
             </section>
 
             {/* Quick Compare Callout Strip */}
@@ -325,13 +328,13 @@ export default function App() {
                   input={activeInput}
                   onChange={setActiveInput}
                   onSaveLoan={handleSaveCurrentLoan}
-                  onReset={() => setActiveInput(CASH2GO_PRESET)}
+                  onReset={() => setActiveInput(FIXED_ADDON_PRESET)}
                 />
               </div>
 
               {/* Right Column (7 cols): KPI Summaries & Real-Time Amortization Charts */}
               <div className="lg:col-span-7 space-y-6">
-                <CalcErrorBoundary onReset={() => setActiveInput(CASH2GO_PRESET)}>
+                <CalcErrorBoundary onReset={() => setActiveInput(FIXED_ADDON_PRESET)}>
                   {/* KPI Metrics */}
                   <LoanSummaryCards result={calculationResult} />
 
