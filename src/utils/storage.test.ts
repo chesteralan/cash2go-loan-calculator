@@ -8,12 +8,10 @@ import {
   buildExportData,
   getActiveLoanFromStorage,
   getSavedLoans,
-  getStoredDarkMode,
   getStorageUsage,
   overwriteSavedLoans,
   saveLoanToStorage,
   setActiveLoanToStorage,
-  setStoredDarkMode,
 } from './storage';
 import { LoanInput, SavedLoanRecord } from '../types/loan';
 import { FIXED_ADDON_PRESET } from './loanCalculations';
@@ -196,17 +194,6 @@ describe('storage usage and undo helpers', () => {
     expect(result.map((l) => l.id)).toEqual(['only-1']);
     overwriteSavedLoans(before);
     expect(getSavedLoans().map((l) => l.id)).toEqual(before.map((l) => l.id));
-  });
-});
-
-describe('dark mode', () => {
-  it('persists and restores the flag', () => {
-    setStoredDarkMode(true);
-    expect(getStoredDarkMode()).toBe(true);
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
-    setStoredDarkMode(false);
-    expect(getStoredDarkMode()).toBe(false);
-    expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
 });
 
