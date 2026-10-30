@@ -24,6 +24,8 @@ export const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({
   const [fetchingRates, setFetchingRates] = useState(false);
   const [ratesVersion, setRatesVersion] = useState(0); // triggers re-conversion after refresh
 
+  const panelRef = useModalA11y<HTMLDivElement>(isOpen ? onClose : undefined);
+
   if (!isOpen) return null;
 
   const principalConv = convertAmount(totalPrincipal, input.currencyCode, targetCode);
@@ -31,7 +33,6 @@ export const CurrencyConverterModal: React.FC<CurrencyConverterModalProps> = ({
   const totalCostConv = convertAmount(totalCost, input.currencyCode, targetCode);
 
   const rateCache = getRateOverrides();
-  const panelRef = useModalA11y<HTMLDivElement>(isOpen ? onClose : undefined);
 
   const handleRefreshRates = async () => {
     setFetchingRates(true);
