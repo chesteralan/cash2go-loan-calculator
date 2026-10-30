@@ -8,12 +8,10 @@ import {
   exportLoansJson,
   getActiveLoanFromStorage,
   getSavedLoans,
-  getStoredDarkMode,
   overwriteSavedLoans,
   saveLoanToStorage,
   deleteSavedLoan,
   setActiveLoanToStorage,
-  setStoredDarkMode,
   type ImportPreview,
 } from './utils/storage';
 import { Header } from './components/Header';
@@ -55,7 +53,6 @@ const ChartSkeleton: React.FC<{ label: string }> = ({ label }) => (
 export default function App() {
   const [activeInput, setActiveInput] = useState<LoanInput>(getActiveLoanFromStorage);
   const [savedLoans, setSavedLoans] = useState<SavedLoanRecord[]>([]);
-  const [darkMode, setDarkMode] = useState<boolean>(getStoredDarkMode);
   const [activeTab, setActiveTab] = useState<string>('calculator');
 
   // Modals state
@@ -66,11 +63,7 @@ export default function App() {
   const [notification, setNotification] = useState<{ msg: string; undo?: () => void } | null>(null);
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Initialize theme & storage
-  useEffect(() => {
-    setStoredDarkMode(darkMode);
-  }, [darkMode]);
-
+  // Initialize storage
   useEffect(() => {
     setSavedLoans(getSavedLoans());
   }, []);
@@ -205,8 +198,6 @@ export default function App() {
             el?.scrollIntoView({ behavior: 'smooth' });
           }
         }}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
         selectedCurrency={activeInput.currencyCode}
         onOpenCurrencyConverter={() => setCurrencyModalOpen(true)}
         onOpenSavedLoans={() => setSavedLoansDrawerOpen(true)}

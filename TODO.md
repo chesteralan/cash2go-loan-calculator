@@ -10,7 +10,7 @@
 ## Done this iteration (v0.1.1)
 
 - [x] **Remove cloud sync** — deleted `CloudSyncModal`, the `SyncPayload`/`getSyncID`/`generateSyncBundle`/`restoreSyncBundle` helpers, the header Sync button, and their tests. No network transport of user data.
-- [x] **Local storage hardening** — `storageAndSync.ts` renamed to `storage.ts` (`SAVED_LOANS_KEY`, `CURRENT_LOAN_KEY`, `DARK_MODE_KEY`). Corrupt-array saved-loan records now fall back to `[]`.
+- [x] **Local storage hardening** — `storageAndSync.ts` renamed to `storage.ts` (`SAVED_LOANS_KEY`, `CURRENT_LOAN_KEY`). Corrupt-array saved-loan records now fall back to `[]`.
 - [x] **JSON backup file export** — `Export Backup` in the Saved Loans drawer downloads `loanmatrix-backup-<date>.json` (`app`, `version`, `exportedAt`, `loans`).
 - [x] **JSON backup file import with review** — `Import Backup` builds a `new / updated / unchanged / skipped` diff preview via `buildImportPreview`; the user confirms before `applyImport` merges.
 - [x] **Clear all saved loans** — `Clear All` wipes the saved-loans key and re-seeds the two presets.

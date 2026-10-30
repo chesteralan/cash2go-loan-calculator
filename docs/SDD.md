@@ -118,7 +118,7 @@ Single-tier client application. All computation, persistence, and rendering happ
 | FR-12 | PDF/Excel/CSV export (PDF jsPDF chunk lazily loaded, fully client-side)                                                                            | `exportUtils.ts`, `pdfExport.ts`                                       |
 | FR-13 | Local JSON backup export/import with reviewed diff preview (+ deleted/clear-all undo)                                                              | `storage.ts`, `SavedLoansDrawer`, `App.tsx`                            |
 | FR-14 | Offline PWA: generated manifest, install prompt, offline indicator                                                                                 | `manifest.webmanifest` (vite-plugin-pwa), `usePWA`, `OfflineIndicator` |
-| FR-15 | Dark mode toggle, persisted                                                                                                                        | `Header`, `DARK_MODE_KEY`                                              |
+| FR-15 | Dark mode only (always-on, no toggle)                                                                                                              | `index.html`, `index.css`                                              |
 | FR-16 | Fixed add-on benchmark reference card with auto-detection of the preset configuration                                                              | `FixedAddonReferenceCard`, `isFixedAddonPresetActive`                  |
 
 ---

@@ -3,7 +3,6 @@ import { FIXED_ADDON_PRESET, STANDARD_MORTGAGE_PRESET } from './loanCalculations
 
 const SAVED_LOANS_KEY = 'loanmatrix_saved_loans_v1';
 const CURRENT_LOAN_KEY = 'loanmatrix_active_loan_v1';
-const DARK_MODE_KEY = 'loanmatrix_theme_dark';
 
 export function getSavedLoans(): SavedLoanRecord[] {
   try {
@@ -212,29 +211,4 @@ export function getStorageUsage(): StorageUsage {
     totalBytes: savedLoansBytes + activeLoanBytes,
     quotaBytes: ASSUMED_QUOTA_BYTES,
   };
-}
-
-export function getStoredDarkMode(): boolean {
-  try {
-    const stored = localStorage.getItem(DARK_MODE_KEY);
-    if (stored !== null) {
-      return stored === 'true';
-    }
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  } catch {
-    return false;
-  }
-}
-
-export function setStoredDarkMode(isDark: boolean): void {
-  try {
-    localStorage.setItem(DARK_MODE_KEY, String(isDark));
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  } catch {
-    // ignore
-  }
 }

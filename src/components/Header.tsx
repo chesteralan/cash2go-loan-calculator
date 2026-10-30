@@ -1,12 +1,10 @@
 import React from 'react';
-import { Calculator, Moon, Sun, Globe, BookmarkCheck, Download } from 'lucide-react';
+import { Calculator, Globe, BookmarkCheck, Download } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWA';
 
 interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  darkMode: boolean;
-  setDarkMode: (val: boolean) => void;
   selectedCurrency: string;
   onOpenCurrencyConverter: () => void;
   onOpenSavedLoans: () => void;
@@ -16,8 +14,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
-  darkMode,
-  setDarkMode,
   selectedCurrency,
   onOpenCurrencyConverter,
   onOpenSavedLoans,
@@ -111,19 +107,6 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="ml-0.5 rounded-full bg-blue-100 px-1.5 py-0.2 text-[10px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
                 {savedLoansCount}
               </span>
-            )}
-          </button>
-
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {darkMode ? (
-              <Sun className="h-4 w-4 text-amber-400" aria-hidden="true" />
-            ) : (
-              <Moon className="h-4 w-4 text-slate-600" aria-hidden="true" />
             )}
           </button>
 
