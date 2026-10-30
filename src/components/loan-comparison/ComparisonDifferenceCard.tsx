@@ -98,7 +98,12 @@ export const ComparisonDifferenceCard: React.FC<{
       b: money(resultB.totalFees),
       delta: money(resultA.totalFees - resultB.totalFees),
       deltaNum: resultA.totalFees - resultB.totalFees,
-      better: null,
+      better:
+        resultA.totalFees === resultB.totalFees
+          ? null
+          : resultA.totalFees < resultB.totalFees
+            ? 'A'
+            : 'B',
     },
   ];
 
