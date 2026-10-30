@@ -6,6 +6,7 @@ import { comparisonPresets, currencyCounterpart } from './loan-comparison/compar
 import { ComparisonVerdict } from './loan-comparison/ComparisonVerdict';
 import { BalanceTrajectoryChart } from './loan-comparison/BalanceTrajectoryChart';
 import { ComparisonLoanCard, accents } from './loan-comparison/ComparisonLoanCard';
+import { ComparisonDifferenceCard } from './loan-comparison/ComparisonDifferenceCard';
 
 interface LoanComparisonViewProps {
   initialLoanA: LoanInput;
@@ -111,6 +112,8 @@ export const LoanComparisonView: React.FC<LoanComparisonViewProps> = ({
       </div>
 
       <BalanceTrajectoryChart resultA={resultA} resultB={resultB} />
+
+      <ComparisonDifferenceCard resultA={resultA} resultB={resultB} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ComparisonLoanCard
